@@ -8,4 +8,6 @@
     <color name="colorSecondaryText">#8A000000</color>
     <color name="colorIcons">#61000000</color>
     <color name="colorDivider">#1F000000</color>
+    <color name="colorBackground">#FFFAFAFA</color>
+    <color name="colorStatusBarLauncher">#FF757575</color>
 </resources>
