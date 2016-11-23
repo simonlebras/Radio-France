@@ -5,11 +5,20 @@ import android.app.Application
 import android.os.Build
 import android.os.StrictMode
 import com.squareup.leakcanary.LeakCanary
+import fr.simonlebras.radiofrance.di.components.ApplicationComponent
+import fr.simonlebras.radiofrance.di.components.DaggerApplicationComponent
+import fr.simonlebras.radiofrance.di.modules.ApplicationModule
 import fr.simonlebras.radiofrance.utils.DebugUtils
 import fr.simonlebras.radiofrance.utils.VersionUtils
 import timber.log.Timber
 
 class RadioFranceApplication : Application() {
+    val component: ApplicationComponent by lazy(LazyThreadSafetyMode.NONE) {
+        DaggerApplicationComponent.builder()
+                .applicationModule(ApplicationModule(this))
+                .build()
+    }
+
     override fun onCreate() {
         super.onCreate()
 
@@ -22,13 +31,15 @@ class RadioFranceApplication : Application() {
 
             setupStrictMode()
         }
+
+        component.inject(this)
     }
 
     private fun setupLeakCanary(): Boolean {
         if (LeakCanary.isInAnalyzerProcess(this)) {
             return false
         }
-        
+
         LeakCanary.install(this)
         return true
     }

@@ -7,7 +7,7 @@
     <item>
         <bitmap
             android:gravity="center"
-            android:src="@drawable/ic_launch_screen_blue_144dp" />
+            android:src="@drawable/ic_radio_blue_144dp" />
     </item>
 
 </layer-list>
