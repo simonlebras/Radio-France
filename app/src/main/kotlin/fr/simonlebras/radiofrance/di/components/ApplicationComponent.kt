@@ -13,5 +13,6 @@ import javax.inject.Singleton
 @Singleton
 interface ApplicationComponent : BaseComponent<RadioFranceApplication> {
     fun plus(module: RadioPlaybackModule): RadioPlaybackComponent
+
     fun plus(module: RadioBrowserActivityModule): RadioBrowserActivityComponent
 }

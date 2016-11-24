@@ -12,5 +12,6 @@ import fr.simonlebras.radiofrance.ui.browser.di.modules.RadioBrowserFragmentModu
 @ActivityScope
 interface RadioBrowserActivityComponent : BaseComponent<RadioBrowserActivity> {
     fun radioBrowserPresenter(): RadioBrowserActivityPresenter
+
     fun plus(module: RadioBrowserFragmentModule): RadioBrowserFragmentComponent
 }

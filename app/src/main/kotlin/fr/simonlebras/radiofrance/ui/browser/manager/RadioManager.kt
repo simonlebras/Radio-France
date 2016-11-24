@@ -5,8 +5,11 @@ import io.reactivex.Observable
 import io.reactivex.Single
 
 interface RadioManager {
+    val connection: Observable<MediaControllerCompatWrapper>
+
+    val radios: Single<List<Radio>>
+
     var cache: List<Radio>?
-    fun connect(): Observable<MediaControllerCompatWrapper>
-    fun getRadios(): Single<List<Radio>>
+
     fun reset()
 }

@@ -41,7 +41,7 @@ class RadioPlaybackService : MediaBrowserServiceCompat() {
         component.inject(this)
 
         // Load the radios as soon as possible
-        radioProvider.getRadios()
+        radioProvider.radios
 
         root = getString(R.string.app_name)
 
@@ -65,7 +65,7 @@ class RadioPlaybackService : MediaBrowserServiceCompat() {
     override fun onLoadChildren(parentId: String, result: Result<List<MediaBrowserCompat.MediaItem>>) {
         result.detach()
 
-        compositeDisposable.add(radioProvider.getRadios()
+        compositeDisposable.add(radioProvider.radios
                 .timeout(TIMEOUT, TimeUnit.SECONDS)
                 .firstOrError()
                 .map {

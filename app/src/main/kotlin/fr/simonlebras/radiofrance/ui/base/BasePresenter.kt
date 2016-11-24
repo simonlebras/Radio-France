@@ -10,7 +10,7 @@ abstract class BasePresenter<V : BaseView>() {
         view = v
     }
 
-    fun onDetachView() {
+    open fun onDetachView() {
         this.view = null
     }
 

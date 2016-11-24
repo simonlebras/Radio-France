@@ -38,6 +38,25 @@ class RadioBrowserActivity : BaseActivity<RadioBrowserActivityPresenter>(), Navi
                 .plus(RadioBrowserActivityModule(this))
     }
 
+    override val parentView: ViewGroup
+        get() = container
+
+    override val isSearching: Boolean
+        get() {
+            if (searchView == null) {
+                return false
+            }
+
+            if (searchView!!.isIconified) {
+                return false
+            }
+
+            return true
+        }
+
+    override val currentQuery: String
+        get() = searchView?.query?.toString() ?: ""
+
     private lateinit var radioBrowseFragment: RadioBrowserFragment
     private var searchView: SearchView? = null
 
@@ -103,8 +122,6 @@ class RadioBrowserActivity : BaseActivity<RadioBrowserActivityPresenter>(), Navi
         return true
     }
 
-    override fun provideParentView(): ViewGroup = container
-
     override fun restorePresenter() {
         presenter = presenterManager[uuid] as? RadioBrowserActivityPresenter ?: component.radioBrowserPresenter()
         presenterManager[uuid] = presenter
@@ -113,20 +130,6 @@ class RadioBrowserActivity : BaseActivity<RadioBrowserActivityPresenter>(), Navi
     override fun setMediaController(mediaControllerWrapper: MediaControllerCompatWrapper) {
         supportMediaController = mediaControllerWrapper.mediaController
     }
-
-    override fun isSearching(): Boolean {
-        if (searchView == null) {
-            return false
-        }
-
-        if (searchView!!.isIconified) {
-            return false
-        }
-
-        return true
-    }
-
-    override fun getCurrentQuery() = searchView?.query?.toString()
 
     private fun subscribeToSearchView(searchView: SearchView) {
         compositeDisposable.add(Flowable

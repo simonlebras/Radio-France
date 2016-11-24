@@ -27,13 +27,18 @@ import kotlinx.android.synthetic.main.fragment_radio_browser.view.*
 import javax.inject.Inject
 
 class RadioBrowserFragment : BaseFragment<RadioBrowserFragmentPresenter>(), RadioBrowserFragmentPresenter.View {
-    val component: RadioBrowserFragmentComponent by lazy(LazyThreadSafetyMode.NONE) {
-        (baseListener!!.provideComponent() as RadioBrowserActivityComponent)
-                .plus(RadioBrowserFragmentModule(this))
-    }
+    override val isSearching: Boolean
+        get() = listener?.isSearching ?: false
+
+    override val currentQuery: String
+        get() = listener?.currentQuery ?: ""
 
     @Inject lateinit var adapter: RadioBrowserAdapter
 
+    private val component: RadioBrowserFragmentComponent by lazy(LazyThreadSafetyMode.NONE) {
+        (baseListener!!.component as RadioBrowserActivityComponent)
+                .plus(RadioBrowserFragmentModule(this))
+    }
     private var listener: Listener? = null
     private var snackBar: Snackbar? = null
     private val updateSubject = PublishSubject.create <RadioListDiffCallback>()
@@ -95,7 +100,7 @@ class RadioBrowserFragment : BaseFragment<RadioBrowserFragmentPresenter>(), Radi
         swipe_refresh_layout.isRefreshing = false
 
         if (swipe_refresh_layout.visibility != View.VISIBLE) {
-            if (!isSearching()) {
+            if (!isSearching) {
                 showEmptyView()
             } else {
                 showNoResultView()
@@ -106,10 +111,6 @@ class RadioBrowserFragment : BaseFragment<RadioBrowserFragmentPresenter>(), Radi
             showRetryAction(false)
         }
     }
-
-    override fun isSearching() = listener?.isSearching() ?: false
-
-    override fun getCurrentQuery() = listener?.getCurrentQuery()
 
     fun searchRadios(query: String) {
         snackBar?.dismiss()
@@ -153,7 +154,7 @@ class RadioBrowserFragment : BaseFragment<RadioBrowserFragmentPresenter>(), Radi
 
                     val newList = it.first
                     if (newList.isEmpty()) {
-                        if (isSearching()) {
+                        if (isSearching) {
                             showNoResultView()
 
                             updateAdapter(newList, it.second)
@@ -170,7 +171,7 @@ class RadioBrowserFragment : BaseFragment<RadioBrowserFragmentPresenter>(), Radi
 
                         updateAdapter(newList, it.second)
 
-                        if (isSearching()) {
+                        if (isSearching) {
                             recycler_view.scrollToPosition(0)
                         }
                     }
@@ -213,7 +214,7 @@ class RadioBrowserFragment : BaseFragment<RadioBrowserFragmentPresenter>(), Radi
             length = Snackbar.LENGTH_LONG
         }
 
-        snackBar = Snackbar.make(baseListener!!.provideParentView(), R.string.msg_error_occurred, length)
+        snackBar = Snackbar.make(listener!!.parentView, R.string.msg_error_occurred, length)
                 .setAction(R.string.action_retry) {
                     if (permanent) {
                         showProgressBar()
@@ -235,7 +236,10 @@ class RadioBrowserFragment : BaseFragment<RadioBrowserFragmentPresenter>(), Radi
     }
 
     interface Listener {
-        fun isSearching(): Boolean
-        fun getCurrentQuery(): String?
+        val parentView: ViewGroup
+
+        val isSearching: Boolean
+
+        val currentQuery: String
     }
 }

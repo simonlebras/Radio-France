@@ -17,12 +17,7 @@ import javax.inject.Inject
 
 @ActivityScope
 class RadioManagerImpl @Inject constructor(val context: Context, val mapper: RadioMapper) : RadioManager {
-    override var cache: List<Radio>? = null
-
-    private lateinit var mediaBrowser: MediaBrowserCompat
-    private lateinit var mediaController: MediaControllerCompat
-    private val compositeDisposable = CompositeDisposable()
-    private val connection: Observable<MediaControllerCompatWrapper> by lazy(LazyThreadSafetyMode.NONE) {
+    override val connection: Observable<MediaControllerCompatWrapper> by lazy(LazyThreadSafetyMode.NONE) {
         Observable
                 .create<MediaControllerCompatWrapper> {
                     mediaBrowser = MediaBrowserCompat(context, ComponentName(context, RadioPlaybackService::class.java), object : MediaBrowserCompat.ConnectionCallback() {
@@ -46,10 +41,8 @@ class RadioManagerImpl @Inject constructor(val context: Context, val mapper: Rad
                 })
     }
 
-    override fun connect() = connection
-
-    override fun getRadios(): Single<List<Radio>> {
-        return Single
+    override val radios: Single<List<Radio>>
+        get() = Single
                 .create<List<MediaBrowserCompat.MediaItem>> {
                     val root = mediaBrowser.root
                     mediaBrowser.unsubscribe(root)
@@ -78,7 +71,12 @@ class RadioManagerImpl @Inject constructor(val context: Context, val mapper: Rad
                 .map {
                     mapper.transform(it)
                 }
-    }
+
+    override var cache: List<Radio>? = null
+
+    private lateinit var mediaBrowser: MediaBrowserCompat
+    private lateinit var mediaController: MediaControllerCompat
+    private val compositeDisposable = CompositeDisposable()
 
     override fun reset() {
         compositeDisposable.clear()

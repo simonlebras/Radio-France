@@ -19,13 +19,12 @@ import javax.inject.Inject
 
 @ServiceScope
 class RadioProviderImpl @Inject constructor(val mapper: MediaMetadataMapper) : RadioProvider {
-    companion object {
+    private companion object {
         private val TAG = LogUtils.makeLogTag(RadioProviderImpl::class.java.simpleName)
         private const val RADIOS_KEY = "radios"
     }
 
-    private val compositeDisposable = CompositeDisposable()
-    private val source: Flowable<List<MediaMetadataCompat>> by lazy(LazyThreadSafetyMode.NONE) {
+    override val radios: Flowable<List<MediaMetadataCompat>> by lazy(LazyThreadSafetyMode.NONE) {
         Flowable
                 .create<DataSnapshot>({
                     FirebaseUtils.enableFirebaseDatabasePersistence()
@@ -61,7 +60,7 @@ class RadioProviderImpl @Inject constructor(val mapper: MediaMetadataMapper) : R
                 }
     }
 
-    override fun getRadios() = source
+    private val compositeDisposable = CompositeDisposable()
 
     override fun reset() {
         compositeDisposable.clear()

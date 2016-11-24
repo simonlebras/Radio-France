@@ -9,6 +9,12 @@ import javax.inject.Inject
 
 @ActivityScope
 class RadioBrowserActivityPresenter @Inject constructor(val radioManager: RadioManager) : BasePresenter<RadioBrowserActivityPresenter.View>() {
+    override fun onDetachView() {
+        compositeDisposable.clear()
+
+        super.onDetachView()
+    }
+
     override fun onDestroy() {
         radioManager.reset()
 
@@ -16,7 +22,7 @@ class RadioBrowserActivityPresenter @Inject constructor(val radioManager: RadioM
     }
 
     fun connect() {
-        compositeDisposable.add(radioManager.connect()
+        compositeDisposable.add(radioManager.connection
                 .subscribe {
                     view?.setMediaController(it)
                 })

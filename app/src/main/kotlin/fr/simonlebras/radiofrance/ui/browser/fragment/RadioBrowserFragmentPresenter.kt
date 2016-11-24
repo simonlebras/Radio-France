@@ -19,8 +19,14 @@ class RadioBrowserFragmentPresenter @Inject constructor(val radioManager: RadioM
     private var searchSubject = PublishSubject.create<String>()
     private var searchDisposable: Disposable? = null
 
+    override fun onDetachView() {
+        compositeDisposable.clear()
+
+        super.onDetachView()
+    }
+
     fun connect() {
-        compositeDisposable.add(radioManager.connect()
+        compositeDisposable.add(radioManager.connection
                 .subscribe {
                     subscribeToRefreshEvents()
                     subscribeToSearchEvents()
@@ -39,7 +45,7 @@ class RadioBrowserFragmentPresenter @Inject constructor(val radioManager: RadioM
     private fun subscribeToRefreshEvents() {
         compositeDisposable.add(refreshSubject
                 .switchMap {
-                    radioManager.getRadios()
+                    radioManager.radios
                             .toObservable()
 
                 }
@@ -49,14 +55,16 @@ class RadioBrowserFragmentPresenter @Inject constructor(val radioManager: RadioM
                     if (disposable != null) {
                         compositeDisposable.remove(disposable)
                     }
+
                     if (it.isNotEmpty()) {
                         radioManager.cache = it
                     }
+
                     subscribeToSearchEvents()
                 }
                 .subscribeWith(object : DisposableObserver<List<Radio>>() {
                     override fun onNext(value: List<Radio>) {
-                        val query = view?.getCurrentQuery() ?: ""
+                        val query = view?.currentQuery ?: ""
                         if (!query.isNullOrEmpty()) {
                             searchRadios(query)
                             return
@@ -100,9 +108,12 @@ class RadioBrowserFragmentPresenter @Inject constructor(val radioManager: RadioM
     }
 
     interface View : BaseView {
+        val isSearching: Boolean
+
+        val currentQuery: String
+
         fun updateRadios(radios: List<Radio>)
+
         fun showRefreshError()
-        fun isSearching(): Boolean
-        fun getCurrentQuery(): String?
     }
 }

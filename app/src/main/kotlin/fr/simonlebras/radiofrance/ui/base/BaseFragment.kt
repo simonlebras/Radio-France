@@ -3,14 +3,13 @@ package fr.simonlebras.radiofrance.ui.base
 import android.content.Context
 import android.os.Bundle
 import android.support.v4.app.Fragment
-import android.view.ViewGroup
 import fr.simonlebras.radiofrance.di.components.ComponentProvider
 import io.reactivex.disposables.CompositeDisposable
 import java.util.*
 
 abstract class BaseFragment<T : BasePresenter<out BaseView>> : Fragment() {
-    companion object {
-        const val BUNDLE_UUID = "BUNDLE_UUID"
+    private companion object {
+        private const val BUNDLE_UUID = "BUNDLE_UUID"
     }
 
     protected val compositeDisposable = CompositeDisposable()
@@ -32,7 +31,7 @@ abstract class BaseFragment<T : BasePresenter<out BaseView>> : Fragment() {
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
-        outState.putSerializable(BaseActivity.BUNDLE_UUID, uuid)
+        outState.putSerializable(BUNDLE_UUID, uuid)
 
         super.onSaveInstanceState(outState)
     }
@@ -48,7 +47,7 @@ abstract class BaseFragment<T : BasePresenter<out BaseView>> : Fragment() {
     override fun onDestroy() {
         if (!activity.isChangingConfigurations) {
             presenter.onDestroy()
-            baseListener!!.providePresenterManager().remove(uuid)
+            baseListener!!.presenterManager.remove(uuid)
         }
 
         super.onDestroy()
@@ -63,7 +62,6 @@ abstract class BaseFragment<T : BasePresenter<out BaseView>> : Fragment() {
     abstract protected fun restorePresenter()
 
     interface BaseListener : ComponentProvider {
-        fun providePresenterManager(): PresenterManager
-        fun provideParentView(): ViewGroup
+        val presenterManager: PresenterManager
     }
 }

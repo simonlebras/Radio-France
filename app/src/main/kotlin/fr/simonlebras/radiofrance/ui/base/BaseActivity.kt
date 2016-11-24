@@ -7,13 +7,13 @@ import io.reactivex.disposables.CompositeDisposable
 import java.util.*
 
 abstract class BaseActivity<T : BasePresenter<out BaseView>> : AppCompatActivity(), BaseFragment.BaseListener {
-    companion object {
-        const val BUNDLE_UUID = "BUNDLE_UUID"
+    private companion object {
+        private const val BUNDLE_UUID = "BUNDLE_UUID"
     }
 
-    lateinit var presenterManager: PresenterManager
+    override abstract val component: BaseComponent<*>
 
-    abstract val component: BaseComponent<*>
+    override lateinit var presenterManager: PresenterManager
 
     protected val compositeDisposable = CompositeDisposable()
     protected lateinit var presenter: T
@@ -49,10 +49,6 @@ abstract class BaseActivity<T : BasePresenter<out BaseView>> : AppCompatActivity
     override fun onRetainCustomNonConfigurationInstance() = presenterManager
 
     override fun getLastCustomNonConfigurationInstance() = super.getLastCustomNonConfigurationInstance() as? PresenterManager
-
-    override fun provideComponent() = component
-
-    override fun providePresenterManager() = presenterManager
 
     abstract protected fun restorePresenter()
 
