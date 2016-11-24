@@ -8,7 +8,6 @@ import android.support.v4.widget.SwipeRefreshLayout
 import android.support.v7.util.DiffUtil
 import android.support.v7.widget.DefaultItemAnimator
 import android.support.v7.widget.LinearLayoutManager
-import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -60,7 +59,7 @@ class RadioBrowserFragment : BaseFragment<RadioBrowserFragmentPresenter>(), Radi
         val layoutManager = LinearLayoutManager(context)
         view.recycler_view.layoutManager = layoutManager
 
-        val width = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 1f, resources.displayMetrics)
+        val width = resources.getDimensionPixelSize(R.dimen.list_divider_width).toFloat()
         val decoration = DividerItemDecoration(ContextCompat.getColor(context, R.color.colorDivider), width)
         view.recycler_view.addItemDecoration(decoration)
 

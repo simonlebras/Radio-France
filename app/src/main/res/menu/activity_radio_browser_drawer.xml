@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <group
+        android:id="@+id/group_primary"
+        android:checkableBehavior="single">
+
+        <item
+            android:id="@+id/navigation_all_radios"
+            android:icon="@drawable/ic_radio_black_24dp"
+            android:title="@string/navigation_item_all_radios" />
+
+        <item
+            android:id="@+id/navigation_favorites"
+            android:icon="@drawable/ic_favorite_black_24dp"
+            android:title="@string/navigation_item_favorites" />
+    </group>
+
+
+    <group
+        android:id="@+id/group_secondary"
+        android:checkableBehavior="single">
+
+        <item
+            android:id="@+id/navigation_settings"
+            android:icon="@drawable/ic_settings_black_24dp"
+            android:title="@string/navigation_item_settings" />
+
+        <item
+            android:id="@+id/navigation_about"
+            android:icon="@drawable/ic_about_black_24dp"
+            android:title="@string/navigation_item_about" />
+
+    </group>
+
+</menu>

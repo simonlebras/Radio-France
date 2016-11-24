@@ -1,4 +1,5 @@
 <resources>
+
     <string name="app_name">Radio France</string>
 
     <string name="action_search">Rechercher</string>
@@ -8,6 +9,16 @@
 
     <string name="search_hint">Rechercher radio…</string>
 
+    <string name="navigation_item_all_radios">Radios</string>
+    <string name="navigation_item_favorites">Favoris</string>
+    <string name="navigation_item_settings">Paramètres</string>
+    <string name="navigation_item_about">À propos</string>
+
+    <string name="navigation_drawer_open">Ouvrir le menu latéral</string>
+    <string name="navigation_drawer_close">Fermer le menu latéral</string>
+
+    <string name="navigation_drawer_header_description">Logo de l\'application</string>
+
     <string name="empty_view_text">Aucune radio pour le moment</string>
     <string name="empty_view_description">Aucune radio disponible</string>
 
@@ -15,4 +26,5 @@
 
     <string name="radio_thumbnail_description">Logo de la radio</string>
     <string name="radio_favorite_description">Favoris</string>
+
 </resources>

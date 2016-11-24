@@ -3,10 +3,14 @@ package fr.simonlebras.radiofrance.ui.browser.activity
 import android.app.SearchManager
 import android.content.Context
 import android.os.Bundle
+import android.support.design.widget.NavigationView
+import android.support.v4.view.GravityCompat
 import android.support.v4.view.MenuItemCompat
+import android.support.v7.app.ActionBarDrawerToggle
 import android.support.v7.app.AppCompatDelegate
 import android.support.v7.widget.SearchView
 import android.view.Menu
+import android.view.MenuItem
 import android.view.ViewGroup
 import fr.simonlebras.radiofrance.R
 import fr.simonlebras.radiofrance.RadioFranceApplication
@@ -18,11 +22,12 @@ import io.reactivex.BackpressureStrategy
 import io.reactivex.Flowable
 import io.reactivex.android.schedulers.AndroidSchedulers
 import kotlinx.android.synthetic.main.activity_radio_browser.*
+import kotlinx.android.synthetic.main.content_radio_browser.*
 import kotlinx.android.synthetic.main.partial_toolbar.*
 import java.util.concurrent.TimeUnit
 
-class RadioBrowserActivity : BaseActivity<RadioBrowserActivityPresenter>(), RadioBrowserActivityPresenter.View, RadioBrowserFragment.Listener {
-    companion object {
+class RadioBrowserActivity : BaseActivity<RadioBrowserActivityPresenter>(), NavigationView.OnNavigationItemSelectedListener, RadioBrowserActivityPresenter.View, RadioBrowserFragment.Listener {
+    private companion object {
         init {
             AppCompatDelegate.setCompatVectorFromResourcesEnabled(true)
         }
@@ -43,6 +48,13 @@ class RadioBrowserActivity : BaseActivity<RadioBrowserActivityPresenter>(), Radi
 
         setContentView(R.layout.activity_radio_browser)
         setSupportActionBar(toolbar)
+
+        val toggle = ActionBarDrawerToggle(this, drawer_layout, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close)
+        drawer_layout.addDrawerListener(toggle)
+        toggle.syncState()
+
+        navigation_view.setNavigationItemSelectedListener(this)
+
         radioBrowseFragment = supportFragmentManager.findFragmentById(R.id.fragment_radio_browser) as RadioBrowserFragment
 
         presenter.onAttachView(this)
@@ -57,6 +69,36 @@ class RadioBrowserActivity : BaseActivity<RadioBrowserActivityPresenter>(), Radi
         searchView!!.setSearchableInfo(searchManager.getSearchableInfo(componentName))
 
         subscribeToSearchView(searchView!!)
+
+        return true
+    }
+
+    override fun onBackPressed() {
+        if (drawer_layout.isDrawerOpen(GravityCompat.START)) {
+            drawer_layout.closeDrawer(GravityCompat.START)
+            return
+        }
+
+        super.onBackPressed()
+    }
+
+    override fun onNavigationItemSelected(item: MenuItem): Boolean {
+        when (item.itemId) {
+            R.id.navigation_all_radios -> {
+
+            }
+            R.id.navigation_favorites -> {
+
+            }
+            R.id.navigation_settings -> {
+
+            }
+            R.id.navigation_about -> {
+
+            }
+        }
+
+        drawer_layout.closeDrawer(GravityCompat.START)
 
         return true
     }
