@@ -5,20 +5,20 @@
     android:layout_width="match_parent"
     android:layout_height="72dp"
     android:background="?attr/selectableItemBackground"
-    tools:context=".ui.browser.activity.RadioBrowserActivity">
+    tools:context=".ui.browser.RadioBrowserActivity">
 
     <ImageView
-        android:id="@+id/radio_thumbnail"
+        android:id="@+id/image_radio_logo"
         android:layout_width="40dp"
         android:layout_height="40dp"
         android:layout_marginStart="?attr/listPreferredItemPaddingLeft"
         android:layout_marginTop="16dp"
-        android:contentDescription="@string/radio_thumbnail_description"
+        android:contentDescription="@string/image_radio_logo_description"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
-        android:id="@+id/radio_title"
+        android:id="@+id/text_radio_title"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginEnd="16dp"
@@ -29,12 +29,12 @@
         android:textAlignment="viewStart"
         android:textColor="@color/colorPrimaryText"
         android:textSize="16sp"
-        app:layout_constraintLeft_toRightOf="@+id/radio_thumbnail"
-        app:layout_constraintRight_toLeftOf="@+id/radio_favorite"
+        app:layout_constraintLeft_toRightOf="@+id/image_radio_logo"
+        app:layout_constraintRight_toLeftOf="@+id/button_radio_favorite"
         app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
-        android:id="@+id/radio_description"
+        android:id="@+id/text_radio_description"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginEnd="16dp"
@@ -44,17 +44,17 @@
         android:textAlignment="viewStart"
         android:textColor="@color/colorSecondaryText"
         android:textSize="14sp"
-        app:layout_constraintLeft_toRightOf="@+id/radio_thumbnail"
-        app:layout_constraintRight_toLeftOf="@+id/radio_favorite"
-        app:layout_constraintTop_toBottomOf="@+id/radio_title" />
+        app:layout_constraintLeft_toRightOf="@+id/image_radio_logo"
+        app:layout_constraintRight_toLeftOf="@+id/button_radio_favorite"
+        app:layout_constraintTop_toBottomOf="@+id/text_radio_title" />
 
-    <ImageView
-        android:id="@+id/radio_favorite"
+    <ImageButton
+        android:id="@+id/button_radio_favorite"
         android:layout_width="24dp"
         android:layout_height="24dp"
         android:layout_marginEnd="?attr/listPreferredItemPaddingRight"
-        android:contentDescription="@string/radio_favorite_description"
-        android:padding="3dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/button_radio_favorite_description"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintTop_toTopOf="parent"

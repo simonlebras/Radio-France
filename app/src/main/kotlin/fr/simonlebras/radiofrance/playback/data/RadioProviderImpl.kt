@@ -1,68 +1,51 @@
 package fr.simonlebras.radiofrance.playback.data
 
 import android.support.v4.media.MediaMetadataCompat
-import com.google.firebase.database.DataSnapshot
-import com.google.firebase.database.DatabaseError
-import com.google.firebase.database.FirebaseDatabase
-import com.google.firebase.database.ValueEventListener
+import android.support.v4.media.session.MediaSessionCompat
 import fr.simonlebras.radiofrance.di.scopes.ServiceScope
 import fr.simonlebras.radiofrance.playback.mappers.MediaMetadataMapper
-import fr.simonlebras.radiofrance.utils.DebugUtils
-import fr.simonlebras.radiofrance.utils.FirebaseUtils
-import fr.simonlebras.radiofrance.utils.LogUtils
-import io.reactivex.BackpressureStrategy
-import io.reactivex.Flowable
-import io.reactivex.disposables.CompositeDisposable
+import fr.simonlebras.radiofrance.playback.mappers.QueueItemMapper
+import fr.simonlebras.radiofrance.utils.OnErrorRetryCache
+import fr.simonlebras.radiofrance.utils.RetryPolicy
+import io.reactivex.Observable
 import io.reactivex.schedulers.Schedulers
-import timber.log.Timber
+import java.io.IOException
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 @ServiceScope
-class RadioProviderImpl @Inject constructor(val mapper: MediaMetadataMapper) : RadioProvider {
-    private companion object {
-        private val TAG = LogUtils.makeLogTag(RadioProviderImpl::class.java.simpleName)
-        private const val RADIOS_KEY = "radios"
-    }
+class RadioProviderImpl @Inject constructor(val firebaseService: FirebaseService) : RadioProvider {
+    @Volatile override var queue: List<MediaSessionCompat.QueueItem> = emptyList()
 
-    override val radios: Flowable<List<MediaMetadataCompat>> by lazy(LazyThreadSafetyMode.NONE) {
-        Flowable
-                .create<DataSnapshot>({
-                    FirebaseUtils.enableFirebaseDatabasePersistence()
-                    val database = FirebaseDatabase.getInstance().reference
+    @Volatile override var metadata: Map<String, MediaMetadataCompat> = linkedMapOf()
 
-                    val listener = object : ValueEventListener {
-                        override fun onDataChange(dataSnapshot: DataSnapshot) {
-                            if (!it.isCancelled) {
-                                it.onNext(dataSnapshot)
-                            }
-                        }
+    private var retryCache: OnErrorRetryCache<List<MediaMetadataCompat>>? = null
 
-                        override fun onCancelled(databaseError: DatabaseError) {
-                            DebugUtils.executeInDebugMode {
-                                Timber.e(TAG, databaseError.details)
-                            }
-                        }
-                    }
-
-                    it.setCancellable {
-                        database.removeEventListener(listener)
-                    }
-
-                    database.child(RADIOS_KEY).addValueEventListener(listener)
-                }, BackpressureStrategy.LATEST)
-                .observeOn(Schedulers.computation())
+    override val radios: Observable<List<MediaMetadataCompat>> by lazy(LazyThreadSafetyMode.NONE) {
+        val source = firebaseService.getRadios()
+                .subscribeOn(Schedulers.io())
+                .retryWhen(RetryPolicy(2, TimeUnit.SECONDS, 3, IOException::class))
                 .map {
-                    mapper.transform(it.children)
+                    MediaMetadataMapper.transform(it)
                 }
-                .replay(1)
-                .autoConnect(0) {
-                    compositeDisposable.add(it)
-                }
-    }
+                .doOnNext {
+                    val queue: MutableList<MediaSessionCompat.QueueItem> = mutableListOf()
+                    val metadata: MutableMap<String, MediaMetadataCompat> = mutableMapOf()
 
-    private val compositeDisposable = CompositeDisposable()
+                    for ((index, value) in it.withIndex()) {
+                        queue.add(QueueItemMapper.transform(value, index.toLong()))
+                        metadata.put(value.description.mediaId!!, value)
+                    }
+
+                    this.queue = queue
+                    this.metadata = metadata
+                }
+
+        retryCache = OnErrorRetryCache(source)
+        retryCache!!.result
+    }
 
     override fun reset() {
-        compositeDisposable.clear()
+        retryCache?.reset()
     }
 }

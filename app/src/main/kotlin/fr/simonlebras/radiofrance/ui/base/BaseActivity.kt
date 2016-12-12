@@ -6,7 +6,7 @@ import fr.simonlebras.radiofrance.di.components.BaseComponent
 import io.reactivex.disposables.CompositeDisposable
 import java.util.*
 
-abstract class BaseActivity<T : BasePresenter<out BaseView>> : AppCompatActivity(), BaseFragment.BaseListener {
+abstract class BaseActivity<T : BasePresenter<out BaseView>> : AppCompatActivity(), BaseFragment.BaseCallback {
     private companion object {
         private const val BUNDLE_UUID = "BUNDLE_UUID"
     }

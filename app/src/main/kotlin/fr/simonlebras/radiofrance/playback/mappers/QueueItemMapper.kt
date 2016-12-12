@@ -1,13 +1,14 @@
 package fr.simonlebras.radiofrance.playback.mappers
 
 import android.net.Uri
-import android.support.v4.media.MediaBrowserCompat
 import android.support.v4.media.MediaDescriptionCompat
 import android.support.v4.media.MediaMetadataCompat
+import android.support.v4.media.session.MediaSessionCompat
 
-object MediaItemMapper {
-    fun transform(metadata: MediaMetadataCompat): MediaBrowserCompat.MediaItem {
+object QueueItemMapper {
+    fun transform(metadata: MediaMetadataCompat, index: Long): MediaSessionCompat.QueueItem {
         val mediaDescription = metadata.description
+
         val builder = MediaDescriptionCompat.Builder()
                 .setMediaId(mediaDescription.mediaId)
                 .setTitle(mediaDescription.title ?: "")
@@ -15,12 +16,12 @@ object MediaItemMapper {
                 .setMediaUri(mediaDescription.mediaUri ?: Uri.EMPTY)
                 .setExtras(metadata.bundle)
 
-        return MediaBrowserCompat.MediaItem(builder.build(), MediaBrowserCompat.MediaItem.FLAG_PLAYABLE)
+        return MediaSessionCompat.QueueItem(builder.build(), index)
     }
 
-    fun transform(metadata: Iterable<MediaMetadataCompat>): List<MediaBrowserCompat.MediaItem> {
-        return metadata.map {
-            transform(it)
+    fun transform(metadata: Iterable<MediaMetadataCompat>): List<MediaSessionCompat.QueueItem> {
+        return metadata.mapIndexed { index, value ->
+            transform(value, index.toLong())
         }
     }
 }

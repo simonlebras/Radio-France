@@ -3,9 +3,19 @@
     <string name="app_name">Radio France</string>
 
     <string name="action_search">Rechercher</string>
-    <string name="action_retry">RÉESSAYER </string>
+    <string name="action_settings">Paramètres</string>
+    <string name="action_about">À propos</string>
+    <string name="action_retry">Réessayer</string>
+    <string name="action_play">Lire</string>
+    <string name="action_pause">Pause</string>
+    <string name="action_play_pause">Lire/Pause</string>
+    <string name="action_previous">Précédent</string>
+    <string name="action_next">Suivant</string>
 
-    <string name="msg_error_occurred">Une erreur est survenue</string>
+    <string name="error_service_unavailable">Service indisponible</string>
+    <string name="error_action_unavailable">Action indisponible</string>
+    <string name="error_radio_unavailable">Radio indisponible</string>
+    <string name="error_occurred">Une erreur s\'est produite</string>
 
     <string name="search_hint">Rechercher radio…</string>
 
@@ -22,9 +32,13 @@
     <string name="empty_view_text">Aucune radio pour le moment</string>
     <string name="empty_view_description">Aucune radio disponible</string>
 
-    <string name="no_result_view_text">Aucun résultat trouvé pour la recherche</string>
+    <string name="text_no_result_text">Aucun résultat trouvé pour la recherche</string>
 
-    <string name="radio_thumbnail_description">Logo de la radio</string>
-    <string name="radio_favorite_description">Favoris</string>
+    <string name="image_radio_logo_description">Logo de la radio</string>
+
+    <string name="button_radio_favorite_description">Favoris</string>
+    <string name="button_play_pause_description">Lire/Pause</string>
+    <string name="button_skip_prev_description">Précédent</string>
+    <string name="button_skip_next_description">Suivant</string>
 
 </resources>

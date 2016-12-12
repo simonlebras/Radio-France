@@ -1,4 +1,4 @@
-package fr.simonlebras.radiofrance.ui.browser.fragment
+package fr.simonlebras.radiofrance.ui.browser.list
 
 import android.os.Bundle
 import android.support.v7.util.DiffUtil

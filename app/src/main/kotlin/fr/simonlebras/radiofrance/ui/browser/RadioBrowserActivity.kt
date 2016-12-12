@@ -1,9 +1,11 @@
-package fr.simonlebras.radiofrance.ui.browser.activity
+package fr.simonlebras.radiofrance.ui.browser
 
 import android.app.SearchManager
 import android.content.Context
 import android.os.Bundle
 import android.support.design.widget.NavigationView
+import android.support.v4.media.session.MediaControllerCompat
+import android.support.v4.media.session.PlaybackStateCompat
 import android.support.v4.view.GravityCompat
 import android.support.v4.view.MenuItemCompat
 import android.support.v7.app.ActionBarDrawerToggle
@@ -11,23 +13,27 @@ import android.support.v7.app.AppCompatDelegate
 import android.support.v7.widget.SearchView
 import android.view.Menu
 import android.view.MenuItem
-import android.view.ViewGroup
 import fr.simonlebras.radiofrance.R
 import fr.simonlebras.radiofrance.RadioFranceApplication
 import fr.simonlebras.radiofrance.ui.base.BaseActivity
-import fr.simonlebras.radiofrance.ui.browser.di.modules.RadioBrowserActivityModule
-import fr.simonlebras.radiofrance.ui.browser.fragment.RadioBrowserFragment
-import fr.simonlebras.radiofrance.ui.browser.manager.MediaControllerCompatWrapper
+import fr.simonlebras.radiofrance.ui.browser.di.modules.RadioBrowserModule
+import fr.simonlebras.radiofrance.ui.browser.list.RadioListFragment
+import fr.simonlebras.radiofrance.ui.browser.player.MiniPlayerFragment
 import io.reactivex.BackpressureStrategy
 import io.reactivex.Flowable
 import io.reactivex.android.schedulers.AndroidSchedulers
 import kotlinx.android.synthetic.main.activity_radio_browser.*
-import kotlinx.android.synthetic.main.content_radio_browser.*
 import kotlinx.android.synthetic.main.partial_toolbar.*
 import java.util.concurrent.TimeUnit
 
-class RadioBrowserActivity : BaseActivity<RadioBrowserActivityPresenter>(), NavigationView.OnNavigationItemSelectedListener, RadioBrowserActivityPresenter.View, RadioBrowserFragment.Listener {
-    private companion object {
+class RadioBrowserActivity : BaseActivity<RadioBrowserPresenter>(),
+        NavigationView.OnNavigationItemSelectedListener,
+        RadioBrowserPresenter.View,
+        RadioListFragment.Callback,
+        MiniPlayerFragment.Callback {
+    companion object {
+        const val REQUEST_CODE = 1
+
         init {
             AppCompatDelegate.setCompatVectorFromResourcesEnabled(true)
         }
@@ -35,11 +41,8 @@ class RadioBrowserActivity : BaseActivity<RadioBrowserActivityPresenter>(), Navi
 
     override val component by lazy(LazyThreadSafetyMode.NONE) {
         (application as RadioFranceApplication).component
-                .plus(RadioBrowserActivityModule(this))
+                .plus(RadioBrowserModule(this))
     }
-
-    override val parentView: ViewGroup
-        get() = container
 
     override val isSearching: Boolean
         get() {
@@ -57,7 +60,8 @@ class RadioBrowserActivity : BaseActivity<RadioBrowserActivityPresenter>(), Navi
     override val currentQuery: String
         get() = searchView?.query?.toString() ?: ""
 
-    private lateinit var radioBrowseFragment: RadioBrowserFragment
+    private lateinit var radioListFragment: RadioListFragment
+    private lateinit var miniPlayerFragment: MiniPlayerFragment
     private var searchView: SearchView? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -74,7 +78,8 @@ class RadioBrowserActivity : BaseActivity<RadioBrowserActivityPresenter>(), Navi
 
         navigation_view.setNavigationItemSelectedListener(this)
 
-        radioBrowseFragment = supportFragmentManager.findFragmentById(R.id.fragment_radio_browser) as RadioBrowserFragment
+        radioListFragment = supportFragmentManager.findFragmentById(R.id.fragment_radio_browser) as RadioListFragment
+        miniPlayerFragment = supportFragmentManager.findFragmentById(R.id.fragment_mini_player) as MiniPlayerFragment
 
         presenter.onAttachView(this)
         presenter.connect()
@@ -123,12 +128,29 @@ class RadioBrowserActivity : BaseActivity<RadioBrowserActivityPresenter>(), Navi
     }
 
     override fun restorePresenter() {
-        presenter = presenterManager[uuid] as? RadioBrowserActivityPresenter ?: component.radioBrowserPresenter()
+        presenter = presenterManager[uuid] as? RadioBrowserPresenter ?: component.radioBrowserPresenter()
         presenterManager[uuid] = presenter
     }
 
-    override fun setMediaController(mediaControllerWrapper: MediaControllerCompatWrapper) {
-        supportMediaController = mediaControllerWrapper.mediaController
+    override fun setMediaController(mediaController: MediaControllerCompat) {
+        supportMediaController = mediaController
+    }
+
+    override fun onConnected() {
+        miniPlayerFragment.onConnected()
+    }
+
+    override fun changeMiniPlayerVisibility() {
+        if (shouldShowMiniPlayer()) {
+            showMiniPlayer()
+            return
+        }
+
+        hideMiniPlayer()
+    }
+
+    override fun showPlaybackError(error: String) {
+        radioListFragment.showPlaybackError(error)
     }
 
     private fun subscribeToSearchView(searchView: SearchView) {
@@ -158,7 +180,36 @@ class RadioBrowserActivity : BaseActivity<RadioBrowserActivityPresenter>(), Navi
                 .distinctUntilChanged()
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe({
-                    radioBrowseFragment.searchRadios(it)
+                    radioListFragment.searchRadios(it)
                 }))
+    }
+
+    private fun shouldShowMiniPlayer(): Boolean {
+        val mediaController = supportMediaController
+        if ((mediaController == null) ||
+                (mediaController.metadata == null) ||
+                (mediaController.playbackState == null)) {
+            return false
+        }
+
+        when (mediaController.playbackState.state) {
+            PlaybackStateCompat.STATE_ERROR,
+            PlaybackStateCompat.STATE_NONE,
+            PlaybackStateCompat.STATE_STOPPED -> return false
+            else -> return true
+        }
+    }
+
+    private fun showMiniPlayer() {
+        supportFragmentManager.beginTransaction()
+                .setCustomAnimations(R.anim.slide_in_bottom, R.anim.slide_out_bottom, R.anim.slide_in_top, R.anim.slide_out_top)
+                .show(miniPlayerFragment)
+                .commit()
+    }
+
+    private fun hideMiniPlayer() {
+        supportFragmentManager.beginTransaction()
+                .hide(miniPlayerFragment)
+                .commit()
     }
 }

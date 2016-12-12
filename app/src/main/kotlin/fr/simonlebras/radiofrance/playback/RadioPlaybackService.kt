@@ -1,9 +1,15 @@
 package fr.simonlebras.radiofrance.playback
 
+import android.app.Service
+import android.content.Intent
 import android.os.Bundle
 import android.support.v4.media.MediaBrowserCompat
 import android.support.v4.media.MediaBrowserServiceCompat
+import android.support.v4.media.MediaMetadataCompat
+import android.support.v4.media.session.MediaButtonReceiver
 import android.support.v4.media.session.MediaSessionCompat
+import android.support.v4.media.session.PlaybackStateCompat
+import fr.simonlebras.radiofrance.BuildConfig
 import fr.simonlebras.radiofrance.R
 import fr.simonlebras.radiofrance.RadioFranceApplication
 import fr.simonlebras.radiofrance.playback.data.RadioProvider
@@ -18,15 +24,26 @@ import javax.inject.Inject
 /**
  * Class providing radio browsing and playback.
  */
-class RadioPlaybackService : MediaBrowserServiceCompat() {
+class RadioPlaybackService : MediaBrowserServiceCompat(), PlaybackManager.Callback, QueueManager.Listener {
     companion object {
         val TAG = LogUtils.makeLogTag(RadioPlaybackService::class.java.simpleName)
-        private const val TIMEOUT = 5L // in seconds
+
+        const val ACTION_CMD = "${BuildConfig.APPLICATION_ID}.ACTION_CMD"
+
+        const val EXTRAS_CMD_NAME = "EXTRAS_CMD_NAME"
+
+        const val CMD_PAUSE = "CMD_PAUSE"
+
+        private const val STOP_DELAY = 30000L // in milliseconds
+
+        private const val TIMEOUT = 10L // in seconds
     }
 
     @Inject lateinit var mediaSession: MediaSessionCompat
     @Inject lateinit var radioProvider: RadioProvider
-    @Inject lateinit var mapper: MediaItemMapper
+    @Inject lateinit var playbackManager: PlaybackManager
+    @Inject lateinit var radioNotificationManager: RadioNotificationManager
+    @Inject lateinit var delayedStopHandler: DelayedStopHandler
 
     private val component by lazy(LazyThreadSafetyMode.NONE) {
         (application as RadioFranceApplication).component
@@ -41,19 +58,59 @@ class RadioPlaybackService : MediaBrowserServiceCompat() {
         component.inject(this)
 
         // Load the radios as soon as possible
-        radioProvider.radios
+        compositeDisposable.add(radioProvider.radios
+                .firstOrError()
+                .subscribeWith(object : DisposableSingleObserver<List<MediaMetadataCompat>>() {
+                    override fun onSuccess(value: List<MediaMetadataCompat>) {
+                    }
+
+                    override fun onError(e: Throwable) {
+                    }
+                }))
+
+        playbackManager.callback = this
+
+        playbackManager.queueManager.listener = this
 
         root = getString(R.string.app_name)
 
         sessionToken = mediaSession.sessionToken
+
+        radioNotificationManager.updateSessionToken()
+
+        playbackManager.updatePlaybackState(null)
+    }
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (intent != null) {
+            val command = intent.getStringExtra(EXTRAS_CMD_NAME)
+            if (ACTION_CMD == intent.action) {
+                if (CMD_PAUSE == command) {
+                    playbackManager.pause()
+                }
+            } else {
+                MediaButtonReceiver.handleIntent(mediaSession, intent)
+            }
+        }
+
+        delayedStopHandler.removeCallbacksAndMessages(null)
+        delayedStopHandler.sendEmptyMessageDelayed(0, STOP_DELAY)
+
+        return Service.START_STICKY
     }
 
     override fun onDestroy() {
+        playbackManager.stop(null)
+
+        radioNotificationManager.reset()
+
         compositeDisposable.clear()
 
-        mediaSession.release()
-
         radioProvider.reset()
+
+        delayedStopHandler.removeCallbacksAndMessages(null)
+
+        mediaSession.release()
 
         super.onDestroy()
     }
@@ -69,7 +126,7 @@ class RadioPlaybackService : MediaBrowserServiceCompat() {
                 .timeout(TIMEOUT, TimeUnit.SECONDS)
                 .firstOrError()
                 .map {
-                    mapper.transform(it)
+                    MediaItemMapper.transform(it)
                 }
                 .subscribeWith(object : DisposableSingleObserver<List<MediaBrowserCompat.MediaItem>>() {
                     override fun onSuccess(mediaItems: List<MediaBrowserCompat.MediaItem>) {
@@ -80,5 +137,43 @@ class RadioPlaybackService : MediaBrowserServiceCompat() {
                         result.sendResult(null)
                     }
                 }))
+    }
+
+    override fun onPlaybackStart() {
+        if (!mediaSession.isActive) {
+            mediaSession.isActive = true
+        }
+
+        delayedStopHandler.removeCallbacksAndMessages(null)
+
+        startService(Intent(this, RadioPlaybackService::class.java))
+    }
+
+    override fun onPlaybackStop() {
+        delayedStopHandler.removeCallbacksAndMessages(null)
+        delayedStopHandler.sendEmptyMessageDelayed(0, STOP_DELAY)
+
+        stopForeground(true)
+    }
+
+    override fun onNotificationRequired() {
+        radioNotificationManager.startNotification()
+    }
+
+    override fun onPlaybackStateChanged(playbackState: PlaybackStateCompat) {
+        mediaSession.setPlaybackState(playbackState)
+    }
+
+    override fun onQueueUpdated(title: String, queue: List<MediaSessionCompat.QueueItem>) {
+        mediaSession.setQueueTitle(title)
+        mediaSession.setQueue(queue)
+    }
+
+    override fun onMetadataChanged(metadata: MediaMetadataCompat) {
+        mediaSession.setMetadata(metadata)
+    }
+
+    override fun onMetadataRetrieveError() {
+        playbackManager.updatePlaybackState(getString(R.string.error_radio_unavailable))
     }
 }

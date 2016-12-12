@@ -15,16 +15,16 @@ abstract class BaseFragment<T : BasePresenter<out BaseView>> : Fragment() {
     protected val compositeDisposable = CompositeDisposable()
     protected lateinit var presenter: T
     protected lateinit var uuid: UUID
-    protected var baseListener: BaseListener? = null
+    protected var baseCallback: BaseCallback? = null
 
     override fun onAttach(context: Context) {
         super.onAttach(context)
 
-        baseListener = context as BaseListener
+        baseCallback = context as BaseCallback
     }
 
-    override fun onActivityCreated(savedInstanceState: Bundle?) {
-        super.onActivityCreated(savedInstanceState)
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
 
         uuid = savedInstanceState?.getSerializable(BUNDLE_UUID) as? UUID ?: UUID.randomUUID()
         restorePresenter()
@@ -47,21 +47,21 @@ abstract class BaseFragment<T : BasePresenter<out BaseView>> : Fragment() {
     override fun onDestroy() {
         if (!activity.isChangingConfigurations) {
             presenter.onDestroy()
-            baseListener!!.presenterManager.remove(uuid)
+            baseCallback!!.presenterManager.remove(uuid)
         }
 
         super.onDestroy()
     }
 
     override fun onDetach() {
-        baseListener = null
+        baseCallback = null
 
         super.onDetach()
     }
 
     abstract protected fun restorePresenter()
 
-    interface BaseListener : ComponentProvider {
+    interface BaseCallback : ComponentProvider {
         val presenterManager: PresenterManager
     }
 }

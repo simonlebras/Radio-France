@@ -9,7 +9,7 @@
     <style name="AppTheme" parent="Base" />
 
     <style name="AppTheme.Launcher">
-        <item name="android:windowBackground">@drawable/ic_launch_screen</item>
+        <item name="android:windowBackground">@drawable/launch_screen</item>
         <item name="colorPrimaryDark">@color/colorStatusBarLauncher</item>
     </style>
 

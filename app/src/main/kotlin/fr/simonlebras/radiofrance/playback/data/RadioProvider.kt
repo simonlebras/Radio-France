@@ -1,10 +1,15 @@
 package fr.simonlebras.radiofrance.playback.data
 
 import android.support.v4.media.MediaMetadataCompat
-import io.reactivex.Flowable
+import android.support.v4.media.session.MediaSessionCompat
+import io.reactivex.Observable
 
 interface RadioProvider {
-    val radios: Flowable<List<MediaMetadataCompat>>
+    var queue: List<MediaSessionCompat.QueueItem>
+
+    var metadata: Map<String, MediaMetadataCompat>
+
+    val radios: Observable<List<MediaMetadataCompat>>
 
     fun reset()
 }

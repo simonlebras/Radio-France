@@ -2,6 +2,7 @@
     package="fr.simonlebras.radiofrance">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <application
         android:name=".RadioFranceApplication"
@@ -13,7 +14,7 @@
         android:theme="@style/AppTheme">
 
         <activity
-            android:name=".ui.browser.activity.RadioBrowserActivity"
+            android:name=".ui.browser.RadioBrowserActivity"
             android:launchMode="singleTop"
             android:theme="@style/AppTheme.Launcher">
 
@@ -45,7 +46,7 @@
         </receiver>
 
         <meta-data
-            android:name="${applicationId}.utils.ImageDecodingModule"
+            android:name="${applicationId}.utils.CustomGlideModule"
             android:value="GlideModule" />
 
     </application>

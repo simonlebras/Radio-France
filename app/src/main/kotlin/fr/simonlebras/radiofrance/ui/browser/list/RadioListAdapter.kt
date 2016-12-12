@@ -1,31 +1,27 @@
-package fr.simonlebras.radiofrance.ui.browser.fragment
+package fr.simonlebras.radiofrance.ui.browser.list
 
+import android.graphics.Bitmap
 import android.os.Bundle
-import android.support.v4.content.ContextCompat
 import android.support.v7.widget.RecyclerView
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import com.bumptech.glide.Glide
-import com.bumptech.glide.load.engine.DiskCacheStrategy
+import com.bumptech.glide.BitmapRequestBuilder
 import fr.simonlebras.radiofrance.R
 import fr.simonlebras.radiofrance.di.scopes.FragmentScope
 import fr.simonlebras.radiofrance.models.Radio
-import kotlinx.android.synthetic.main.item_radio.view.*
+import kotlinx.android.synthetic.main.list_item_radio.view.*
 import javax.inject.Inject
 
 @FragmentScope
-class RadioBrowserAdapter @Inject constructor(val fragment: RadioBrowserFragment) : RecyclerView.Adapter<RadioBrowserAdapter.ViewHolder>() {
+class RadioListAdapter @Inject constructor(val fragment: RadioListFragment,
+                                           val glideRequest: BitmapRequestBuilder<String, Bitmap>) : RecyclerView.Adapter<RadioListAdapter.ViewHolder>() {
     var radios: List<Radio> = emptyList()
 
     private val inflater = LayoutInflater.from(fragment.context)
-    private val glide = Glide.with(fragment).from(String::class.java)
-            .placeholder(ContextCompat.getDrawable(fragment.context, R.drawable.ic_radio_blue_40dp))
-            .error(ContextCompat.getDrawable(fragment.context, R.drawable.ic_radio_blue_40dp))
-            .diskCacheStrategy(DiskCacheStrategy.ALL)
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        val view = inflater.inflate(R.layout.item_radio, parent, false)
+        val view = inflater.inflate(R.layout.list_item_radio, parent, false)
         return ViewHolder(view)
     }
 
@@ -50,28 +46,40 @@ class RadioBrowserAdapter @Inject constructor(val fragment: RadioBrowserFragment
                     holder.bindRadioLogo(smallLogo)
                 }
             }
+
+            holder.radioId = id
         }
     }
 
     override fun getItemCount() = radios.size
 
     inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        lateinit var radioId: String
+
+        init {
+            itemView.setOnClickListener {
+                fragment.onRadioSelected(radioId)
+            }
+        }
+
         fun bindRadio(radio: Radio) {
             bindRadioTitle(radio.name)
             bindRadioDescription(radio.description)
             bindRadioLogo(radio.smallLogo)
+
+            radioId = radio.id
         }
 
         fun bindRadioTitle(title: String) {
-            itemView.radio_title.text = title
+            itemView.text_radio_title.text = title
         }
 
         fun bindRadioDescription(description: String) {
-            itemView.radio_description.text = description
+            itemView.text_radio_description.text = description
         }
 
         fun bindRadioLogo(logoUrl: String) {
-            glide.load(logoUrl).into(itemView.radio_thumbnail)
+            glideRequest.load(logoUrl).into(itemView.image_radio_logo)
         }
     }
 }

@@ -6,7 +6,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fitsSystemWindows="true"
-    tools:context=".ui.browser.activity.RadioBrowserActivity"
+    tools:context=".ui.browser.RadioBrowserActivity"
     tools:openDrawer="start">
 
     <include

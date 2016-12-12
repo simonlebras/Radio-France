@@ -1,4 +1,4 @@
-package fr.simonlebras.radiofrance.ui.browser.fragment
+package fr.simonlebras.radiofrance.ui.browser.list
 
 import android.graphics.Canvas
 import android.graphics.Paint
