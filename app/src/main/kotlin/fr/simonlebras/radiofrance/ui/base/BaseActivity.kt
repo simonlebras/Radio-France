@@ -33,11 +33,15 @@ abstract class BaseActivity<T : BasePresenter<out BaseView>> : AppCompatActivity
         super.onSaveInstanceState(outState)
     }
 
-    override fun onDestroy() {
+    override fun onStop() {
         compositeDisposable.clear()
 
         presenter.onDetachView()
 
+        super.onStop()
+    }
+
+    override fun onDestroy() {
         if (!isChangingConfigurations) {
             presenter.onDestroy()
             presenterManager.remove(uuid)

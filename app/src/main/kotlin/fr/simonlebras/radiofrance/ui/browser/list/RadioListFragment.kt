@@ -78,8 +78,8 @@ class RadioListFragment : BaseFragment<RadioListPresenter>(), RadioListPresenter
         return view
     }
 
-    override fun onViewCreated(view: View?, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
+    override fun onStart() {
+        super.onStart()
 
         presenter.onAttachView(this)
         presenter.connect()

@@ -153,7 +153,7 @@ class RadioPlaybackService : MediaBrowserServiceCompat(), PlaybackManager.Callba
         delayedStopHandler.removeCallbacksAndMessages(null)
         delayedStopHandler.sendEmptyMessageDelayed(0, STOP_DELAY)
 
-        stopForeground(true)
+        stopForeground(false)
     }
 
     override fun onNotificationRequired() {

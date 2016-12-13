@@ -36,12 +36,12 @@ abstract class BaseFragment<T : BasePresenter<out BaseView>> : Fragment() {
         super.onSaveInstanceState(outState)
     }
 
-    override fun onDestroyView() {
+    override fun onStop() {
         compositeDisposable.dispose()
 
         presenter.onDetachView()
 
-        super.onDestroyView()
+        super.onStop()
     }
 
     override fun onDestroy() {

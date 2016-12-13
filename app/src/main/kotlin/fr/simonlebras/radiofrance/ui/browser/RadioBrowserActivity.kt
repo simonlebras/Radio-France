@@ -80,6 +80,10 @@ class RadioBrowserActivity : BaseActivity<RadioBrowserPresenter>(),
 
         radioListFragment = supportFragmentManager.findFragmentById(R.id.fragment_radio_browser) as RadioListFragment
         miniPlayerFragment = supportFragmentManager.findFragmentById(R.id.fragment_mini_player) as MiniPlayerFragment
+    }
+
+    override fun onStart() {
+        super.onStart()
 
         presenter.onAttachView(this)
         presenter.connect()
