@@ -3,9 +3,9 @@ package fr.simonlebras.radiofrance.ui.browser.player
 import android.content.Context
 import android.graphics.Bitmap
 import android.os.Bundle
-import android.support.v4.app.FragmentActivity
 import android.support.v4.content.ContextCompat
 import android.support.v4.media.MediaMetadataCompat
+import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import android.view.LayoutInflater
 import android.view.View
@@ -44,7 +44,7 @@ class MiniPlayerFragment : BaseFragment<MiniPlayerPresenter>(), MiniPlayerPresen
         component.inject(this)
 
         view.button_radio_play_pause.setOnClickListener {
-            val controller = (activity as FragmentActivity).supportMediaController
+            val controller = MediaControllerCompat.getMediaController(activity)
             val playbackState = controller.playbackState
             val state = playbackState.state
             if (state == PlaybackStateCompat.STATE_PAUSED ||
@@ -88,7 +88,7 @@ class MiniPlayerFragment : BaseFragment<MiniPlayerPresenter>(), MiniPlayerPresen
     }
 
     fun onConnected() {
-        val controller = (activity as FragmentActivity).supportMediaController
+        val controller = MediaControllerCompat.getMediaController(activity)
         onMetadataChanged(controller.metadata)
         onPlaybackStateChanged(controller.playbackState)
 

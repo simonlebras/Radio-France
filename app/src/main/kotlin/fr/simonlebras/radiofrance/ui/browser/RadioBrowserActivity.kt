@@ -137,7 +137,7 @@ class RadioBrowserActivity : BaseActivity<RadioBrowserPresenter>(),
     }
 
     override fun setMediaController(mediaController: MediaControllerCompat) {
-        supportMediaController = mediaController
+        MediaControllerCompat.setMediaController(this, mediaController)
     }
 
     override fun onConnected() {
@@ -189,7 +189,7 @@ class RadioBrowserActivity : BaseActivity<RadioBrowserPresenter>(),
     }
 
     private fun shouldShowMiniPlayer(): Boolean {
-        val mediaController = supportMediaController
+        val mediaController = MediaControllerCompat.getMediaController(this)
         if ((mediaController == null) ||
                 (mediaController.metadata == null) ||
                 (mediaController.playbackState == null)) {
