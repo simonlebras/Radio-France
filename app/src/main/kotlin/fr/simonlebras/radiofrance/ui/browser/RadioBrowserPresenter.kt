@@ -1,5 +1,6 @@
 package fr.simonlebras.radiofrance.ui.browser
 
+import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaControllerCompat
 import fr.simonlebras.radiofrance.di.scopes.ActivityScope
 import fr.simonlebras.radiofrance.ui.base.BasePresenter
@@ -25,7 +26,7 @@ class RadioBrowserPresenter @Inject constructor(val radioManager: RadioManager) 
         compositeDisposable.add(radioManager.connection
                 .subscribe {
                     view?.setMediaController(it)
-                    view?.onConnected()
+                    view?.onConnected(it)
                     view?.changeMiniPlayerVisibility()
                     subscribeToPlaybackUpdates()
                 })
@@ -34,6 +35,10 @@ class RadioBrowserPresenter @Inject constructor(val radioManager: RadioManager) 
     private fun subscribeToPlaybackUpdates() {
         compositeDisposable.add(radioManager.playbackUpdates
                 .subscribe {
+                    if (it is MediaMetadataCompat) {
+                        view?.updateToolbarTitle(it.description.title?.toString())
+                    }
+
                     view?.changeMiniPlayerVisibility()
                 }
         )
@@ -42,8 +47,10 @@ class RadioBrowserPresenter @Inject constructor(val radioManager: RadioManager) 
     interface View : BaseView {
         fun setMediaController(mediaController: MediaControllerCompat)
 
-        fun onConnected()
+        fun onConnected(mediaController: MediaControllerCompat)
 
         fun changeMiniPlayerVisibility()
+
+        fun updateToolbarTitle(title: String?)
     }
 }

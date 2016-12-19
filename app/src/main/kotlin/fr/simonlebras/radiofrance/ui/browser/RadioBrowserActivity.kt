@@ -140,8 +140,9 @@ class RadioBrowserActivity : BaseActivity<RadioBrowserPresenter>(),
         MediaControllerCompat.setMediaController(this, mediaController)
     }
 
-    override fun onConnected() {
+    override fun onConnected(mediaController: MediaControllerCompat) {
         miniPlayerFragment.onConnected()
+        updateToolbarTitle(mediaController.metadata?.description?.title?.toString())
     }
 
     override fun changeMiniPlayerVisibility() {
@@ -151,6 +152,10 @@ class RadioBrowserActivity : BaseActivity<RadioBrowserPresenter>(),
         }
 
         hideMiniPlayer()
+    }
+
+    override fun updateToolbarTitle(title: String?) {
+        toolbar.title = title ?: getString(R.string.label_radios)
     }
 
     override fun showPlaybackError(error: String) {

@@ -15,6 +15,7 @@
 
         <activity
             android:name=".ui.browser.RadioBrowserActivity"
+            android:label="@string/label_radios"
             android:launchMode="singleTop"
             android:theme="@style/AppTheme.Launcher">
 

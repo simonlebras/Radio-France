@@ -2,6 +2,8 @@
 
     <string name="app_name">Radio France</string>
 
+    <string name="label_radios">Radios</string>
+
     <string name="action_search">Rechercher</string>
     <string name="action_settings">Paramètres</string>
     <string name="action_about">À propos</string>

@@ -5,15 +5,10 @@ import android.content.Context
 import android.content.Intent
 import android.media.AudioManager
 import android.net.wifi.WifiManager
-import android.os.Handler
 import android.os.PowerManager
 import android.support.v4.app.NotificationManagerCompat
 import android.support.v4.media.session.MediaButtonReceiver
 import android.support.v4.media.session.MediaSessionCompat
-import com.google.android.exoplayer2.DefaultLoadControl
-import com.google.android.exoplayer2.ExoPlayerFactory
-import com.google.android.exoplayer2.SimpleExoPlayer
-import com.google.android.exoplayer2.trackselection.DefaultTrackSelector
 import com.jakewharton.retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory
 import dagger.Module
 import dagger.Provides
@@ -95,15 +90,6 @@ class RadioPlaybackModule(service: RadioPlaybackService) : ServiceModule<RadioPl
     fun provideWakeLock(context: Context): PowerManager.WakeLock {
         val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
         return powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, LOCK_NAME)
-    }
-
-    @Provides
-    fun provideExoPlayer(context: Context): (() -> SimpleExoPlayer) {
-        val trackSelector = DefaultTrackSelector(Handler())
-
-        val loadControl = DefaultLoadControl()
-
-        return { ExoPlayerFactory.newSimpleInstance(context, trackSelector, loadControl) }
     }
 
     @Provides

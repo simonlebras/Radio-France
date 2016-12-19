@@ -12,16 +12,16 @@ import android.os.PowerManager
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import android.text.TextUtils
-import com.google.android.exoplayer2.ExoPlaybackException
-import com.google.android.exoplayer2.ExoPlayer
-import com.google.android.exoplayer2.SimpleExoPlayer
-import com.google.android.exoplayer2.Timeline
+import com.google.android.exoplayer2.*
 import com.google.android.exoplayer2.extractor.ExtractorsFactory
 import com.google.android.exoplayer2.extractor.mp3.Mp3Extractor
 import com.google.android.exoplayer2.extractor.mp4.Mp4Extractor
 import com.google.android.exoplayer2.extractor.ogg.OggExtractor
 import com.google.android.exoplayer2.extractor.wav.WavExtractor
 import com.google.android.exoplayer2.source.ExtractorMediaSource
+import com.google.android.exoplayer2.source.TrackGroupArray
+import com.google.android.exoplayer2.trackselection.DefaultTrackSelector
+import com.google.android.exoplayer2.trackselection.TrackSelectionArray
 import com.google.android.exoplayer2.upstream.DefaultHttpDataSourceFactory
 import fr.simonlebras.radiofrance.R
 import fr.simonlebras.radiofrance.extensions.isPlaying
@@ -33,8 +33,7 @@ import javax.inject.Inject
 class LocalPlayback @Inject constructor(val context: Context,
                                         val audioManager: AudioManager,
                                         val wifiLock: WifiManager.WifiLock,
-                                        val wakeLock: PowerManager.WakeLock,
-                                        val exoPlayerFactory: () -> SimpleExoPlayer) : Playback, AudioManager.OnAudioFocusChangeListener, ExoPlayer.EventListener {
+                                        val wakeLock: PowerManager.WakeLock) : Playback, AudioManager.OnAudioFocusChangeListener, ExoPlayer.EventListener {
     private companion object {
         private val TAG = LogUtils.makeLogTag(LocalPlayback::class.java.simpleName)
 
@@ -182,9 +181,12 @@ class LocalPlayback @Inject constructor(val context: Context,
     override fun onTimelineChanged(timeline: Timeline?, manifest: Any?) {
     }
 
+    override fun onTracksChanged(trackGroups: TrackGroupArray?, trackSelections: TrackSelectionArray?) {
+    }
+
     private fun initializeExoPlayer() {
         if (exoPlayer == null) {
-            exoPlayer = exoPlayerFactory()
+            exoPlayer = ExoPlayerFactory.newSimpleInstance(context, DefaultTrackSelector(), DefaultLoadControl())
 
             exoPlayer!!.addListener(this)
 
