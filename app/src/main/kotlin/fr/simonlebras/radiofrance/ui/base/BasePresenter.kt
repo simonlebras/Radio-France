@@ -2,7 +2,7 @@ package fr.simonlebras.radiofrance.ui.base
 
 import io.reactivex.disposables.CompositeDisposable
 
-abstract class BasePresenter<V : BaseView>() {
+abstract class BasePresenter<V : BaseView> {
     protected var view: V? = null
     protected var compositeDisposable = CompositeDisposable()
 

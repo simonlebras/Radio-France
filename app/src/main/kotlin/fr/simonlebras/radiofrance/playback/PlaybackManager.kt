@@ -13,7 +13,7 @@ class PlaybackManager @Inject constructor(val context: Context,
                                           var playback: Playback) : Playback.Callback {
     var callback: Callback? = null
     val isPlaying: Boolean
-        get() = playback.isPlaying == true
+        get() = playback.isPlaying
 
     init {
         playback.callback = this
