@@ -16,12 +16,6 @@ class RadioListPresenter @Inject constructor(val radioManager: RadioManager) : B
     private var refreshSubject = PublishSubject.create<Boolean>()
     private var searchSubject = PublishSubject.create<String>()
 
-    override fun onDetachView() {
-        compositeDisposable.clear()
-
-        super.onDetachView()
-    }
-
     fun connect() {
         compositeDisposable.add(radioManager.connection
                 .subscribe {

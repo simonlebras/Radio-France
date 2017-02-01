@@ -37,14 +37,14 @@ abstract class BaseFragment<T : BasePresenter<out BaseView>> : Fragment() {
     }
 
     override fun onStop() {
-        compositeDisposable.dispose()
-
         presenter.onDetachView()
 
         super.onStop()
     }
 
     override fun onDestroy() {
+        compositeDisposable.dispose()
+
         if (!activity.isChangingConfigurations) {
             presenter.onDestroy()
             baseCallback!!.presenterManager.remove(uuid)

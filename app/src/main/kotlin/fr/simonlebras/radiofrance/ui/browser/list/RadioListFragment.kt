@@ -19,8 +19,6 @@ import fr.simonlebras.radiofrance.ui.browser.di.components.RadioBrowserComponent
 import fr.simonlebras.radiofrance.ui.browser.di.components.RadioListComponent
 import fr.simonlebras.radiofrance.ui.browser.di.modules.RadioListModule
 import io.reactivex.Observable
-import io.reactivex.android.schedulers.AndroidSchedulers
-import io.reactivex.schedulers.Schedulers
 import io.reactivex.subjects.PublishSubject
 import kotlinx.android.synthetic.main.fragment_radio_list.*
 import kotlinx.android.synthetic.main.fragment_radio_list.view.*
@@ -122,11 +120,9 @@ class RadioListFragment : BaseFragment<RadioListPresenter>(), RadioListPresenter
 
     private fun subscribeToUpdateEvents() {
         compositeDisposable.add(updateSubject
-                .subscribeOn(Schedulers.computation())
                 .switchMap {
                     Observable.just(Pair(it.newList, DiffUtil.calculateDiff(it)))
                 }
-                .observeOn(AndroidSchedulers.mainThread())
                 .subscribe({
                     val newList = it.first
                     if (newList.isEmpty()) {
