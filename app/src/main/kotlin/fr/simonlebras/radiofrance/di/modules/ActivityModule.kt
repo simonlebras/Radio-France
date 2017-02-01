@@ -6,7 +6,7 @@ import dagger.Provides
 import fr.simonlebras.radiofrance.di.scopes.ActivityScope
 
 @Module
-abstract class ActivityModule<out T : Activity>(private val activity: T) {
+abstract class ActivityModule<out T : Activity>(protected val activity: T) {
     @Provides
     @ActivityScope
     fun provideActivity() = activity

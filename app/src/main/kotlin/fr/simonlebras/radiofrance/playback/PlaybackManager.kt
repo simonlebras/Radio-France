@@ -5,15 +5,25 @@ import android.os.SystemClock
 import android.support.v4.media.session.PlaybackStateCompat
 import fr.simonlebras.radiofrance.R
 import fr.simonlebras.radiofrance.di.scopes.ServiceScope
+import fr.simonlebras.radiofrance.utils.DebugUtils
+import fr.simonlebras.radiofrance.utils.LogUtils
+import timber.log.Timber
 import javax.inject.Inject
+import javax.inject.Named
 
 @ServiceScope
 class PlaybackManager @Inject constructor(val context: Context,
                                           val queueManager: QueueManager,
-                                          var playback: Playback) : Playback.Callback {
+                                          @Named("Local") localPlaybackFactory: PlaybackFactory) : Playback.Callback {
+    private companion object {
+        private val TAG = LogUtils.makeLogTag(PlaybackManager::class.java.simpleName)
+    }
+
     var callback: Callback? = null
     val isPlaying: Boolean
-        get() = playback.isPlaying
+        get() = playback.isFocused && playback.isPlaying
+
+    private var playback = localPlaybackFactory.create(context)
 
     init {
         playback.callback = this
@@ -53,7 +63,7 @@ class PlaybackManager @Inject constructor(val context: Context,
     }
 
     fun pause() {
-        if (playback.isPlaying) {
+        if (playback.isFocused && playback.isPlaying) {
             playback.pause()
             callback?.onPlaybackStop()
         }
@@ -117,6 +127,39 @@ class PlaybackManager @Inject constructor(val context: Context,
         }
     }
 
+    fun switchToPlayback(playback: Playback, resumePlaying: Boolean) {
+        val oldState = this.playback.playbackState
+        val currentRadioId = this.playback.currentRadioId
+
+        this.playback.stop(false)
+        playback.callback = this
+        playback.currentRadioId = currentRadioId
+        playback.start()
+
+        this.playback = playback
+
+        when (oldState) {
+            PlaybackStateCompat.STATE_BUFFERING, PlaybackStateCompat.STATE_CONNECTING, PlaybackStateCompat.STATE_PAUSED -> this.playback.pause()
+            PlaybackStateCompat.STATE_PLAYING -> {
+                val currentMusic = queueManager.currentRadio
+                if (resumePlaying && currentMusic != null) {
+                    this.playback.play(currentMusic)
+                } else if (!resumePlaying) {
+                    this.playback.pause()
+                } else {
+                    this.playback.stop(true)
+                }
+            }
+            PlaybackStateCompat.STATE_NONE -> {
+            }
+            else -> {
+                DebugUtils.executeInDebugMode {
+                    Timber.d(TAG, "Default called. Old state is ", oldState)
+                }
+            }
+        }
+    }
+
     private fun getAvailableActions(): Long {
         var actions = PlaybackStateCompat.ACTION_PLAY or
                 PlaybackStateCompat.ACTION_PLAY_FROM_MEDIA_ID or
@@ -124,7 +167,7 @@ class PlaybackManager @Inject constructor(val context: Context,
                 PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS or
                 PlaybackStateCompat.ACTION_SKIP_TO_NEXT
 
-        if (playback.isPlaying) {
+        if (playback.isFocused && playback.isPlaying) {
             actions = actions or PlaybackStateCompat.ACTION_PAUSE
         }
 

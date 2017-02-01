@@ -9,6 +9,8 @@ import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaButtonReceiver
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
+import com.google.android.gms.cast.framework.CastSession
+import com.google.android.gms.cast.framework.SessionManager
 import fr.simonlebras.radiofrance.BuildConfig
 import fr.simonlebras.radiofrance.R
 import fr.simonlebras.radiofrance.RadioFranceApplication
@@ -30,9 +32,11 @@ class RadioPlaybackService : MediaBrowserServiceCompat(), PlaybackManager.Callba
 
         const val ACTION_CMD = "${BuildConfig.APPLICATION_ID}.ACTION_CMD"
 
-        const val EXTRAS_CMD_NAME = "EXTRAS_CMD_NAME"
+        const val EXTRAS_CMD_NAME = "${BuildConfig.APPLICATION_ID}.EXTRAS_CMD_NAME"
+        const val EXTRA_CONNECTED_CAST = "${BuildConfig.APPLICATION_ID}.EXTRAS_CAST_NAME"
 
         const val CMD_PAUSE = "CMD_PAUSE"
+        const val CMD_STOP_CASTING = "CMD_STOP_CASTING"
 
         private const val STOP_DELAY = 30000L // in milliseconds
 
@@ -44,6 +48,8 @@ class RadioPlaybackService : MediaBrowserServiceCompat(), PlaybackManager.Callba
     @Inject lateinit var playbackManager: PlaybackManager
     @Inject lateinit var radioNotificationManager: RadioNotificationManager
     @Inject lateinit var delayedStopHandler: DelayedStopHandler
+    @Inject lateinit var castSessionManager: SessionManager
+    @Inject lateinit var castSessionManagerListener: CastSessionManagerListener
 
     private val component by lazy(LazyThreadSafetyMode.NONE) {
         (application as RadioFranceApplication).component
@@ -87,6 +93,8 @@ class RadioPlaybackService : MediaBrowserServiceCompat(), PlaybackManager.Callba
             if (ACTION_CMD == intent.action) {
                 if (CMD_PAUSE == command) {
                     playbackManager.pause()
+                } else if (CMD_STOP_CASTING == command) {
+                    castSessionManager.endCurrentSession(true)
                 }
             } else {
                 MediaButtonReceiver.handleIntent(mediaSession, intent)
@@ -103,6 +111,8 @@ class RadioPlaybackService : MediaBrowserServiceCompat(), PlaybackManager.Callba
         playbackManager.stop(null)
 
         radioNotificationManager.reset()
+
+        castSessionManager.removeSessionManagerListener(castSessionManagerListener, CastSession::class.java)
 
         compositeDisposable.clear()
 

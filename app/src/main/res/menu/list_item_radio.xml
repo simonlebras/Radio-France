@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/radio_website"
+        android:title="@string/title_radio_website" />
+    <item
+        android:id="@+id/radio_twitter"
+        android:title="@string/title_radio_twitter" />
+    <item
+        android:id="@+id/radio_facebook"
+        android:title="@string/title_radio_facebook" />
+</menu>

@@ -24,4 +24,7 @@
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
 
--keepnames class fr.simonlebras.radiofrance.utils.CustomGlideModule
+-keep public class * implements com.bumptech.glide.module.GlideModule
+
+-dontwarn okio.**
+-dontwarn retrofit2.Platform$Java8

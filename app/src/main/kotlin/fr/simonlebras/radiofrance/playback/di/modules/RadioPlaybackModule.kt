@@ -9,15 +9,17 @@ import android.os.PowerManager
 import android.support.v4.app.NotificationManagerCompat
 import android.support.v4.media.session.MediaButtonReceiver
 import android.support.v4.media.session.MediaSessionCompat
+import android.support.v7.media.MediaRouter
+import com.google.android.gms.cast.framework.CastContext
+import com.google.android.gms.cast.framework.CastSession
+import com.google.android.gms.cast.framework.SessionManager
+import com.google.android.gms.cast.framework.media.RemoteMediaClient
 import com.jakewharton.retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory
 import dagger.Module
 import dagger.Provides
 import fr.simonlebras.radiofrance.di.modules.ServiceModule
 import fr.simonlebras.radiofrance.di.scopes.ServiceScope
-import fr.simonlebras.radiofrance.playback.LocalPlayback
-import fr.simonlebras.radiofrance.playback.MediaSessionCallback
-import fr.simonlebras.radiofrance.playback.Playback
-import fr.simonlebras.radiofrance.playback.RadioPlaybackService
+import fr.simonlebras.radiofrance.playback.*
 import fr.simonlebras.radiofrance.playback.data.FirebaseService
 import fr.simonlebras.radiofrance.playback.data.RadioProvider
 import fr.simonlebras.radiofrance.playback.data.RadioProviderImpl
@@ -25,6 +27,7 @@ import fr.simonlebras.radiofrance.ui.browser.RadioBrowserActivity
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
+import javax.inject.Named
 
 @Module
 class RadioPlaybackModule(service: RadioPlaybackService) : ServiceModule<RadioPlaybackService>(service) {
@@ -93,5 +96,45 @@ class RadioPlaybackModule(service: RadioPlaybackService) : ServiceModule<RadioPl
     }
 
     @Provides
-    fun provideLocalPlayback(playback: LocalPlayback): Playback = playback
+    @ServiceScope
+    fun provideMediaRouter(context: Context): MediaRouter {
+        return MediaRouter.getInstance(context.applicationContext)
+    }
+
+    @Provides
+    @ServiceScope
+    fun provideCastSessionManager(context: Context, castSessionManagerListener: CastSessionManagerListener): SessionManager {
+        val castSessionManager = CastContext.getSharedInstance(context).sessionManager
+        castSessionManager.addSessionManagerListener(castSessionManagerListener, CastSession::class.java)
+
+        return castSessionManager
+    }
+
+    @Provides
+    fun provideRemoteMediaClient(context: Context): RemoteMediaClient {
+        val castSession = CastContext.getSharedInstance(context.applicationContext).sessionManager.currentCastSession
+        return castSession.remoteMediaClient
+    }
+
+    @Provides
+    @ServiceScope
+    @Named("Local")
+    fun provideLocalPlaybackFactory(): PlaybackFactory {
+        return object : PlaybackFactory {
+            override fun create(context: Context): Playback {
+                return LocalPlayback(context, provideAudioManager(context), provideWifiLock(context), provideWakeLock(context))
+            }
+        }
+    }
+
+    @Provides
+    @ServiceScope
+    @Named("Cast")
+    fun provideCastPlaybackFactory(radioProvider: RadioProviderImpl): PlaybackFactory {
+        return object : PlaybackFactory {
+            override fun create(context: Context): Playback {
+                return CastPlayback(context, provideRemoteMediaClient(context), radioProvider)
+            }
+        }
+    }
 }

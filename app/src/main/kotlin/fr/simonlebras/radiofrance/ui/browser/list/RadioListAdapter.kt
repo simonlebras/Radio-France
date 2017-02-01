@@ -1,8 +1,12 @@
 package fr.simonlebras.radiofrance.ui.browser.list
 
+import android.content.Intent
 import android.graphics.Bitmap
+import android.net.Uri
 import android.os.Bundle
+import android.support.v7.widget.PopupMenu
 import android.support.v7.widget.RecyclerView
+import android.support.v7.widget.RecyclerView.NO_POSITION
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -21,8 +25,55 @@ class RadioListAdapter @Inject constructor(val fragment: RadioListFragment,
     private val inflater = LayoutInflater.from(fragment.context)
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        val view = inflater.inflate(R.layout.list_item_radio, parent, false)
-        return ViewHolder(view)
+        val viewHolder = ViewHolder(inflater.inflate(R.layout.list_item_radio, parent, false))
+
+        viewHolder.itemView.setOnClickListener {
+            val position = viewHolder.adapterPosition
+            if (position != NO_POSITION) {
+                fragment.onRadioSelected(radios[position].id)
+            }
+        }
+
+        viewHolder.itemView.button_radio_links.setOnClickListener {
+            val position = viewHolder.adapterPosition
+            if (position == NO_POSITION) {
+                return@setOnClickListener
+            }
+
+            val popup = PopupMenu(fragment.context, it)
+
+            popup.inflate(R.menu.list_item_radio)
+
+            popup.setOnMenuItemClickListener {
+                val intent = Intent(Intent.ACTION_VIEW)
+                when (it.itemId) {
+                    R.id.radio_website -> {
+                        intent.data = Uri.parse(radios[position].website)
+                    }
+                    R.id.radio_twitter -> {
+                        intent.data = Uri.parse(radios[position].twitter)
+                    }
+                    R.id.radio_facebook -> {
+                        intent.data = Uri.parse(radios[position].facebook)
+                    }
+                    else -> {
+                        return@setOnMenuItemClickListener false
+                    }
+                }
+
+                with(fragment.context) {
+                    if (intent.resolveActivity(packageManager) != null) {
+                        startActivity(intent)
+                    }
+                }
+
+                return@setOnMenuItemClickListener false
+            }
+
+            popup.show()
+        }
+
+        return viewHolder
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
@@ -46,28 +97,16 @@ class RadioListAdapter @Inject constructor(val fragment: RadioListFragment,
                     holder.bindRadioLogo(smallLogo)
                 }
             }
-
-            holder.radioId = id
         }
     }
 
     override fun getItemCount() = radios.size
 
     inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        lateinit var radioId: String
-
-        init {
-            itemView.setOnClickListener {
-                fragment.onRadioSelected(radioId)
-            }
-        }
-
         fun bindRadio(radio: Radio) {
             bindRadioTitle(radio.name)
             bindRadioDescription(radio.description)
             bindRadioLogo(radio.smallLogo)
-
-            radioId = radio.id
         }
 
         fun bindRadioTitle(title: String) {

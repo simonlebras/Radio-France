@@ -28,12 +28,11 @@ import fr.simonlebras.radiofrance.extensions.isPlaying
 import fr.simonlebras.radiofrance.utils.DebugUtils
 import fr.simonlebras.radiofrance.utils.LogUtils
 import timber.log.Timber
-import javax.inject.Inject
 
-class LocalPlayback @Inject constructor(val context: Context,
-                                        val audioManager: AudioManager,
-                                        val wifiLock: WifiManager.WifiLock,
-                                        val wakeLock: PowerManager.WakeLock) : Playback, AudioManager.OnAudioFocusChangeListener, ExoPlayer.EventListener {
+class LocalPlayback constructor(val context: Context,
+                                val audioManager: AudioManager,
+                                val wifiLock: WifiManager.WifiLock,
+                                val wakeLock: PowerManager.WakeLock) : Playback, AudioManager.OnAudioFocusChangeListener, ExoPlayer.EventListener {
     private companion object {
         private val TAG = LogUtils.makeLogTag(LocalPlayback::class.java.simpleName)
 
@@ -46,8 +45,11 @@ class LocalPlayback @Inject constructor(val context: Context,
 
     override var callback: Playback.Callback? = null
 
+    override val isFocused: Boolean
+        get() = playOnFocusGain
+
     override val isPlaying: Boolean
-        get() = playOnFocusGain || (exoPlayer?.isPlaying == true)
+        get() = (exoPlayer?.isPlaying == true)
 
     private var exoPlayer: SimpleExoPlayer? = null
     private val userAgent = context.getString(R.string.app_name)

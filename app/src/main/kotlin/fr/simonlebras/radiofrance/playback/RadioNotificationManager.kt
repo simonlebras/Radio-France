@@ -44,6 +44,7 @@ class RadioNotificationManager @Inject constructor(val context: Context,
         private const val ACTION_PAUSE = "${BuildConfig.APPLICATION_ID}.pause"
         private const val ACTION_PREV = "${BuildConfig.APPLICATION_ID}.prev"
         private const val ACTION_NEXT = "${BuildConfig.APPLICATION_ID}.next"
+        private const val ACTION_STOP_CASTING = "${BuildConfig.APPLICATION_ID}.stopCasting"
     }
 
     private val packageName = service.packageName
@@ -55,6 +56,9 @@ class RadioNotificationManager @Inject constructor(val context: Context,
             Intent(ACTION_PREV).setPackage(packageName), PendingIntent.FLAG_CANCEL_CURRENT)
     private val nextIntent = PendingIntent.getBroadcast(service, REQUEST_CODE,
             Intent(ACTION_NEXT).setPackage(packageName), PendingIntent.FLAG_CANCEL_CURRENT)
+    private val stopCastingIntent = PendingIntent.getBroadcast(service, REQUEST_CODE,
+            Intent(ACTION_STOP_CASTING).setPackage(packageName), PendingIntent.FLAG_CANCEL_CURRENT)
+
     private var sessionToken: MediaSessionCompat.Token? = null
     private var controller: MediaControllerCompat? = null
     private lateinit var transportControls: MediaControllerCompat.TransportControls
@@ -63,6 +67,7 @@ class RadioNotificationManager @Inject constructor(val context: Context,
     private var started = false
     private var request: Request? = null
     private val notificationSize = service.resources.getDimensionPixelSize(android.R.dimen.notification_large_icon_width)
+    private lateinit var target: SimpleTarget<Bitmap>
     private val callback = object : MediaControllerCompat.Callback() {
         override fun onPlaybackStateChanged(state: PlaybackStateCompat) {
             playbackState = state
@@ -106,6 +111,13 @@ class RadioNotificationManager @Inject constructor(val context: Context,
             ACTION_PAUSE -> transportControls.pause()
             ACTION_PREV -> transportControls.skipToPrevious()
             ACTION_NEXT -> transportControls.skipToNext()
+            ACTION_STOP_CASTING -> {
+                val stopIntent = Intent(context, RadioPlaybackService::class.java)
+                stopIntent.action = RadioPlaybackService.ACTION_CMD
+                stopIntent.putExtra(RadioPlaybackService.EXTRAS_CMD_NAME, RadioPlaybackService.CMD_STOP_CASTING)
+
+                service.startService(stopIntent)
+            }
             else -> {
                 DebugUtils.executeInDebugMode {
                     Timber.e(TAG, "Unknown action: ", action)
@@ -128,6 +140,7 @@ class RadioNotificationManager @Inject constructor(val context: Context,
                     addAction(ACTION_PAUSE)
                     addAction(ACTION_PREV)
                     addAction(ACTION_NEXT)
+                    addAction(ACTION_STOP_CASTING)
                 }
 
                 service.registerReceiver(this, filter)
@@ -225,9 +238,29 @@ class RadioNotificationManager @Inject constructor(val context: Context,
                 .setShowWhen(false)
                 .setUsesChronometer(false)
 
+        val extras = controller?.extras
+        if (extras != null) {
+            val castName = extras.getString(RadioPlaybackService.EXTRA_CONNECTED_CAST)
+            if (castName != null) {
+                val castInfo = service.resources.getString(R.string.casting_to_device, castName)
+                builder.setSubText(castInfo)
+                        .addAction(R.drawable.ic_close_black_24dp, service.getString(R.string.action_stop_casting), stopCastingIntent)
+            }
+        }
+
         setNotificationPlaybackState(builder)
 
         val logoUrl = metadata?.getString(MediaMetadataUtils.METADATA_KEY_SMALL_LOGO)
+        target = object : SimpleTarget<Bitmap>() {
+            override fun onResourceReady(resource: Bitmap, glideAnimation: GlideAnimation<in Bitmap>) {
+                if (metadata?.getString(MediaMetadataUtils.METADATA_KEY_SMALL_LOGO) == logoUrl) {
+                    builder.setLargeIcon(resource)
+
+                    notificationManager.notify(NOTIFICATION_ID, builder.build())
+                }
+            }
+        }
+
         request = Glide.with(context)
                 .load(logoUrl)
                 .asBitmap()
@@ -235,15 +268,7 @@ class RadioNotificationManager @Inject constructor(val context: Context,
                 .placeholder(R.drawable.ic_radio_blue_64dp)
                 .error(R.drawable.ic_radio_blue_64dp)
                 .diskCacheStrategy(DiskCacheStrategy.ALL)
-                .into(object : SimpleTarget<Bitmap>() {
-                    override fun onResourceReady(resource: Bitmap, glideAnimation: GlideAnimation<in Bitmap>) {
-                        if (metadata?.getString(MediaMetadataUtils.METADATA_KEY_SMALL_LOGO) == logoUrl) {
-                            builder.setLargeIcon(resource)
-
-                            notificationManager.notify(NOTIFICATION_ID, builder.build())
-                        }
-                    }
-                })
+                .into(target)
                 .request
 
         return builder.build()
