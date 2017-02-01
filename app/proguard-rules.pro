@@ -25,6 +25,23 @@
 #-renamesourcefileattribute SourceFile
 
 -keep public class * implements com.bumptech.glide.module.GlideModule
+-keep public class fr.simonlebras.radiofrance.utils.CastOptionsProvider
+
+-keep class android.support.v7.app.MediaRouteActionProvider { *; }
+-keep class android.support.v7.widget.SearchView { *; }
+-keep class android.support.v4.media.session.MediaSessionCompat$Token { *; }
+
+-keep class fr.simonlebras.radiofrance.models.Radio { *; }
 
 -dontwarn okio.**
+
+-dontnote retrofit2.Platform
+-dontnote retrofit2.Platform$IOS$MainThreadExecutor
 -dontwarn retrofit2.Platform$Java8
+-keepattributes Signature
+-keepattributes Exceptions
+-keepclasseswithmembers class * {
+    @retrofit2.http.* <methods>;
+}
+
+

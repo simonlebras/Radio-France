@@ -17,5 +17,5 @@ class RadioBrowserModule(activity: RadioBrowserActivity) : ActivityModule<RadioB
 
     @Provides
     @ActivityScope
-    fun provideCastContext() = CastContext.getSharedInstance(activity)
+    fun provideCastContext(): CastContext = CastContext.getSharedInstance(activity)
 }

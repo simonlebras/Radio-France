@@ -1,4 +1,4 @@
-package fr.simonlebras.radiofrance.utils;
+package fr.simonlebras.radiofrance.utils
 
 import android.content.Context
 import com.google.android.gms.cast.framework.CastOptions

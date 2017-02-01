@@ -78,8 +78,7 @@ dependencies {
 
     compile 'com.google.android.gms:play-services-cast-framework:10.0.1'
 
-    compile 'com.google.firebase:firebase-core:9.8.0'
-    releaseCompile 'com.google.firebase:firebase-crash:9.8.0'
+    releaseCompile 'com.google.firebase:firebase-crash:10.0.1'
 
     compile 'com.google.dagger:dagger-android:2.8'
     kapt 'com.google.dagger:dagger-compiler:2.8'
