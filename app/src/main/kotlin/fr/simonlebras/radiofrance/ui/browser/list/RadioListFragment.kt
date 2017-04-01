@@ -11,13 +11,11 @@ import android.support.v7.widget.LinearLayoutManager
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import dagger.Lazy
 import fr.simonlebras.radiofrance.R
 import fr.simonlebras.radiofrance.models.Radio
 import fr.simonlebras.radiofrance.ui.base.BaseActivity
 import fr.simonlebras.radiofrance.ui.base.BaseFragment
-import fr.simonlebras.radiofrance.ui.browser.di.components.RadioBrowserComponent
-import fr.simonlebras.radiofrance.ui.browser.di.components.RadioListComponent
-import fr.simonlebras.radiofrance.ui.browser.di.modules.RadioListModule
 import io.reactivex.Observable
 import io.reactivex.subjects.PublishSubject
 import kotlinx.android.synthetic.main.fragment_radio_list.*
@@ -31,12 +29,9 @@ class RadioListFragment : BaseFragment<RadioListPresenter>(), RadioListPresenter
     override val currentQuery: String
         get() = callback?.currentQuery ?: ""
 
+    @Inject lateinit var presenterProvider: Lazy<RadioListPresenter>
     @Inject lateinit var adapter: RadioListAdapter
 
-    private val component: RadioListComponent by lazy(LazyThreadSafetyMode.NONE) {
-        (baseCallback!!.component as RadioBrowserComponent)
-                .plus(RadioListModule(this))
-    }
     private var callback: Callback? = null
     private var snackBar: Snackbar? = null
     private val updateSubject = PublishSubject.create <RadioListDiffCallback>()
@@ -49,8 +44,6 @@ class RadioListFragment : BaseFragment<RadioListPresenter>(), RadioListPresenter
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         val view = inflater.inflate(R.layout.fragment_radio_list, container, false)
-
-        component.inject(this)
 
         view.recycler_view.adapter = adapter
         view.recycler_view.itemAnimator = DefaultItemAnimator()
@@ -91,7 +84,7 @@ class RadioListFragment : BaseFragment<RadioListPresenter>(), RadioListPresenter
 
     override fun restorePresenter() {
         val presenterManager = (activity as BaseActivity<*>).presenterManager
-        presenter = presenterManager[uuid] as? RadioListPresenter ?: component.radioListPresenter()
+        presenter = presenterManager[uuid] as? RadioListPresenter ?: presenterProvider.get()
         presenterManager[uuid] = presenter
     }
 

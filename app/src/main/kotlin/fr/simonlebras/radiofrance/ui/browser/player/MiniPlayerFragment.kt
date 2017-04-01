@@ -11,23 +11,17 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import com.bumptech.glide.BitmapRequestBuilder
+import dagger.Lazy
 import fr.simonlebras.radiofrance.R
 import fr.simonlebras.radiofrance.ui.base.BaseActivity
 import fr.simonlebras.radiofrance.ui.base.BaseFragment
-import fr.simonlebras.radiofrance.ui.browser.di.components.MiniPlayerComponent
-import fr.simonlebras.radiofrance.ui.browser.di.components.RadioBrowserComponent
-import fr.simonlebras.radiofrance.ui.browser.di.modules.MiniPlayerModule
 import fr.simonlebras.radiofrance.utils.MediaMetadataUtils
 import kotlinx.android.synthetic.main.fragment_mini_player.*
 import kotlinx.android.synthetic.main.fragment_mini_player.view.*
 import javax.inject.Inject
 
 class MiniPlayerFragment : BaseFragment<MiniPlayerPresenter>(), MiniPlayerPresenter.View {
-    private val component: MiniPlayerComponent by lazy(LazyThreadSafetyMode.NONE) {
-        (baseCallback!!.component as RadioBrowserComponent)
-                .plus(MiniPlayerModule(this))
-    }
-
+    @Inject lateinit var presenterProvider: Lazy<MiniPlayerPresenter>
     @Inject lateinit var glideRequest: BitmapRequestBuilder<String, Bitmap>
 
     private var callback: MiniPlayerFragment.Callback? = null
@@ -40,8 +34,6 @@ class MiniPlayerFragment : BaseFragment<MiniPlayerPresenter>(), MiniPlayerPresen
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         val view = inflater.inflate(R.layout.fragment_mini_player, container, false)
-
-        component.inject(this)
 
         view.button_radio_play_pause.setOnClickListener {
             val controller = MediaControllerCompat.getMediaController(activity)
@@ -83,7 +75,7 @@ class MiniPlayerFragment : BaseFragment<MiniPlayerPresenter>(), MiniPlayerPresen
 
     override fun restorePresenter() {
         val presenterManager = (activity as BaseActivity<*>).presenterManager
-        presenter = presenterManager[uuid] as? MiniPlayerPresenter ?: component.miniPlayerPresenter()
+        presenter = presenterManager[uuid] as? MiniPlayerPresenter ?: presenterProvider.get()
         presenterManager[uuid] = presenter
     }
 

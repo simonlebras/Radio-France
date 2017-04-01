@@ -7,6 +7,8 @@ import android.support.v7.media.MediaRouter
 import com.google.android.gms.cast.framework.CastSession
 import com.google.android.gms.cast.framework.SessionManagerListener
 import fr.simonlebras.radiofrance.di.scopes.ServiceScope
+import fr.simonlebras.radiofrance.playback.di.modules.RadioPlaybackModule.Companion.CAST_KEY
+import fr.simonlebras.radiofrance.playback.di.modules.RadioPlaybackModule.Companion.LOCAL_KEY
 import javax.inject.Inject
 import javax.inject.Named
 
@@ -15,8 +17,8 @@ class CastSessionManagerListener @Inject constructor(val context: Context,
                                                      val mediaSession: MediaSessionCompat,
                                                      val playbackManager: PlaybackManager,
                                                      val mediaRouter: MediaRouter,
-                                                     @Named("Local") val localPlaybackFactory: PlaybackFactory,
-                                                     @Named("Cast") val castPlaybackFactory: PlaybackFactory) : SessionManagerListener<CastSession> {
+                                                     @Named(LOCAL_KEY) val localPlaybackFactory: PlaybackFactory,
+                                                     @Named(CAST_KEY) val castPlaybackFactory: PlaybackFactory) : SessionManagerListener<CastSession> {
     private val sessionExtras = Bundle()
 
     override fun onSessionEnded(session: CastSession, error: Int) {

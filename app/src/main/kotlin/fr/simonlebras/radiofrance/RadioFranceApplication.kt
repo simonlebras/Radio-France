@@ -1,24 +1,36 @@
 package fr.simonlebras.radiofrance
 
 import android.annotation.TargetApi
+import android.app.Activity
 import android.app.Application
-import android.os.Build
+import android.app.Service
+import android.os.Build.VERSION_CODES.M
 import android.os.StrictMode
 import com.squareup.leakcanary.LeakCanary
+import dagger.android.DispatchingAndroidInjector
+import dagger.android.HasDispatchingActivityInjector
+import dagger.android.HasDispatchingServiceInjector
 import fr.simonlebras.radiofrance.di.components.ApplicationComponent
 import fr.simonlebras.radiofrance.di.components.DaggerApplicationComponent
 import fr.simonlebras.radiofrance.di.modules.ApplicationModule
 import fr.simonlebras.radiofrance.utils.DebugUtils
-import fr.simonlebras.radiofrance.utils.VersionUtils
+import fr.simonlebras.radiofrance.utils.VersionUtils.supportsSdkVersion
 import timber.log.Timber
+import javax.inject.Inject
 
-class RadioFranceApplication : Application() {
+class RadioFranceApplication : Application(),
+        HasDispatchingActivityInjector,
+        HasDispatchingServiceInjector {
     val component: ApplicationComponent by lazy(LazyThreadSafetyMode.NONE) {
         DaggerApplicationComponent.builder()
                 .applicationModule(ApplicationModule(this))
                 .build()
     }
 
+    @Inject lateinit var activityInjector: DispatchingAndroidInjector<Activity>
+    @Inject lateinit var serviceInjector: DispatchingAndroidInjector<Service>
+
+    @TargetApi(M)
     override fun onCreate() {
         super.onCreate()
 
@@ -32,8 +44,12 @@ class RadioFranceApplication : Application() {
             setupStrictMode()
         }
 
-        component.inject(this)
+        component.injectMembers(this)
     }
+
+    override fun activityInjector() = activityInjector
+
+    override fun serviceInjector() = serviceInjector
 
     private fun setupLeakCanary(): Boolean {
         if (LeakCanary.isInAnalyzerProcess(this)) {
@@ -48,27 +64,21 @@ class RadioFranceApplication : Application() {
         Timber.plant(Timber.DebugTree())
     }
 
-    @TargetApi(Build.VERSION_CODES.M)
+    @TargetApi(M)
     private fun setupStrictMode() {
-        StrictMode.setThreadPolicy(StrictMode.ThreadPolicy.Builder()
+        val threadPolicyBuilder = StrictMode.ThreadPolicy.Builder()
                 .detectAll()
                 .penaltyLog()
-                .build())
-
         val vmPolicyBuilder = StrictMode.VmPolicy.Builder()
+                .detectAll()
+                .penaltyLog()
 
-        VersionUtils.supportsSdkVersion(Build.VERSION_CODES.JELLY_BEAN_MR2, {
-            vmPolicyBuilder.detectFileUriExposure()
-        })
-
-        VersionUtils.supportsSdkVersion(Build.VERSION_CODES.M, {
+        supportsSdkVersion(M, {
+            threadPolicyBuilder.detectResourceMismatches()
             vmPolicyBuilder.detectCleartextNetwork()
         })
 
-        vmPolicyBuilder.detectActivityLeaks()
-                .detectLeakedClosableObjects()
-                .penaltyLog()
-
+        StrictMode.setThreadPolicy(threadPolicyBuilder.build())
         StrictMode.setVmPolicy(vmPolicyBuilder.build())
     }
 }

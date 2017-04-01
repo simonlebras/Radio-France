@@ -3,7 +3,7 @@ package fr.simonlebras.radiofrance.ui.base
 import android.content.Context
 import android.os.Bundle
 import android.support.v4.app.Fragment
-import fr.simonlebras.radiofrance.di.components.ComponentProvider
+import dagger.android.support.AndroidSupportInjection
 import io.reactivex.disposables.CompositeDisposable
 import java.util.*
 
@@ -18,6 +18,8 @@ abstract class BaseFragment<T : BasePresenter<out BaseView>> : Fragment() {
     protected var baseCallback: BaseCallback? = null
 
     override fun onAttach(context: Context) {
+        AndroidSupportInjection.inject(this)
+
         super.onAttach(context)
 
         baseCallback = context as BaseCallback
@@ -61,7 +63,7 @@ abstract class BaseFragment<T : BasePresenter<out BaseView>> : Fragment() {
 
     abstract protected fun restorePresenter()
 
-    interface BaseCallback : ComponentProvider {
+    interface BaseCallback {
         val presenterManager: PresenterManager
     }
 }

@@ -1,20 +1,15 @@
 package fr.simonlebras.radiofrance.ui.browser.di.components
 
 import dagger.Subcomponent
-import fr.simonlebras.radiofrance.di.components.BaseComponent
+import dagger.android.AndroidInjector
 import fr.simonlebras.radiofrance.di.scopes.ActivityScope
 import fr.simonlebras.radiofrance.ui.browser.RadioBrowserActivity
-import fr.simonlebras.radiofrance.ui.browser.RadioBrowserPresenter
-import fr.simonlebras.radiofrance.ui.browser.di.modules.MiniPlayerModule
+import fr.simonlebras.radiofrance.ui.browser.di.modules.BindingModule
 import fr.simonlebras.radiofrance.ui.browser.di.modules.RadioBrowserModule
-import fr.simonlebras.radiofrance.ui.browser.di.modules.RadioListModule
 
-@Subcomponent(modules = arrayOf(RadioBrowserModule::class))
+@Subcomponent(modules = arrayOf(RadioBrowserModule::class, BindingModule::class))
 @ActivityScope
-interface RadioBrowserComponent : BaseComponent<RadioBrowserActivity> {
-    fun radioBrowserPresenter(): RadioBrowserPresenter
-
-    fun plus(module: RadioListModule): RadioListComponent
-
-    fun plus(module: MiniPlayerModule): MiniPlayerComponent
+interface RadioBrowserComponent : AndroidInjector<RadioBrowserActivity> {
+    @Subcomponent.Builder
+    abstract class Builder : AndroidInjector.Builder<RadioBrowserActivity>()
 }

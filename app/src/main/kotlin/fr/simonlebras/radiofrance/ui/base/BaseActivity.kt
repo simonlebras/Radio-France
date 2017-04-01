@@ -2,7 +2,7 @@ package fr.simonlebras.radiofrance.ui.base
 
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
-import fr.simonlebras.radiofrance.di.components.BaseComponent
+import dagger.android.AndroidInjection
 import io.reactivex.disposables.CompositeDisposable
 import java.util.*
 
@@ -11,8 +11,6 @@ abstract class BaseActivity<T : BasePresenter<out BaseView>> : AppCompatActivity
         private const val BUNDLE_UUID = "BUNDLE_UUID"
     }
 
-    override abstract val component: BaseComponent<*>
-
     override lateinit var presenterManager: PresenterManager
 
     protected val compositeDisposable = CompositeDisposable()
@@ -20,6 +18,8 @@ abstract class BaseActivity<T : BasePresenter<out BaseView>> : AppCompatActivity
     protected lateinit var uuid: UUID
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        AndroidInjection.inject(this)
+
         super.onCreate(savedInstanceState)
 
         uuid = savedInstanceState?.get(BUNDLE_UUID) as? UUID ?: UUID.randomUUID()

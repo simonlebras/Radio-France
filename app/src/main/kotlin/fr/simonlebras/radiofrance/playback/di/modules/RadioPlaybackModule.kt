@@ -14,10 +14,8 @@ import com.google.android.gms.cast.framework.CastContext
 import com.google.android.gms.cast.framework.CastSession
 import com.google.android.gms.cast.framework.SessionManager
 import com.google.android.gms.cast.framework.media.RemoteMediaClient
-import com.jakewharton.retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory
 import dagger.Module
 import dagger.Provides
-import fr.simonlebras.radiofrance.di.modules.ServiceModule
 import fr.simonlebras.radiofrance.di.scopes.ServiceScope
 import fr.simonlebras.radiofrance.playback.*
 import fr.simonlebras.radiofrance.playback.data.FirebaseService
@@ -26,15 +24,19 @@ import fr.simonlebras.radiofrance.playback.data.RadioProviderImpl
 import fr.simonlebras.radiofrance.ui.browser.RadioBrowserActivity
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
+import retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory
 import retrofit2.converter.moshi.MoshiConverterFactory
 import javax.inject.Named
 
 @Module
-class RadioPlaybackModule(service: RadioPlaybackService) : ServiceModule<RadioPlaybackService>(service) {
-    private companion object {
+class RadioPlaybackModule {
+    companion object {
         private const val LOCK_NAME = "Radio France lock"
 
         private const val BASE_URL = "https://radio-france-77818.firebaseapp.com"
+
+        const val LOCAL_KEY = "LOCAL_KEY"
+        const val CAST_KEY = "CAST_KEY"
     }
 
     @Provides
@@ -118,7 +120,7 @@ class RadioPlaybackModule(service: RadioPlaybackService) : ServiceModule<RadioPl
 
     @Provides
     @ServiceScope
-    @Named("Local")
+    @Named(LOCAL_KEY)
     fun provideLocalPlaybackFactory(): PlaybackFactory {
         return object : PlaybackFactory {
             override fun create(context: Context): Playback {
@@ -129,7 +131,7 @@ class RadioPlaybackModule(service: RadioPlaybackService) : ServiceModule<RadioPl
 
     @Provides
     @ServiceScope
-    @Named("Cast")
+    @Named(CAST_KEY)
     fun provideCastPlaybackFactory(radioProvider: RadioProviderImpl): PlaybackFactory {
         return object : PlaybackFactory {
             override fun create(context: Context): Playback {

@@ -4,6 +4,7 @@ import android.app.SearchManager
 import android.content.Context
 import android.os.Bundle
 import android.os.Handler
+import android.support.v4.app.Fragment
 import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import android.support.v4.view.MenuItemCompat
@@ -13,14 +14,14 @@ import android.support.v7.widget.SearchView
 import android.view.Menu
 import android.view.MenuItem
 import com.google.android.gms.cast.framework.*
+import com.jakewharton.rxbinding2.support.v7.widget.queryTextChanges
+import dagger.Lazy
+import dagger.android.DispatchingAndroidInjector
+import dagger.android.support.HasDispatchingSupportFragmentInjector
 import fr.simonlebras.radiofrance.R
-import fr.simonlebras.radiofrance.RadioFranceApplication
 import fr.simonlebras.radiofrance.ui.base.BaseActivity
-import fr.simonlebras.radiofrance.ui.browser.di.modules.RadioBrowserModule
 import fr.simonlebras.radiofrance.ui.browser.list.RadioListFragment
 import fr.simonlebras.radiofrance.ui.browser.player.MiniPlayerFragment
-import io.reactivex.BackpressureStrategy
-import io.reactivex.Flowable
 import io.reactivex.android.schedulers.AndroidSchedulers
 import kotlinx.android.synthetic.main.partial_toolbar.*
 import java.util.concurrent.TimeUnit
@@ -29,7 +30,9 @@ import javax.inject.Inject
 class RadioBrowserActivity : BaseActivity<RadioBrowserPresenter>(),
         RadioBrowserPresenter.View,
         RadioListFragment.Callback,
-        MiniPlayerFragment.Callback {
+        MiniPlayerFragment.Callback,
+        HasDispatchingSupportFragmentInjector {
+
     companion object {
         const val REQUEST_CODE = 1
 
@@ -38,11 +41,6 @@ class RadioBrowserActivity : BaseActivity<RadioBrowserPresenter>(),
         init {
             AppCompatDelegate.setCompatVectorFromResourcesEnabled(true)
         }
-    }
-
-    override val component by lazy(LazyThreadSafetyMode.NONE) {
-        (application as RadioFranceApplication).component
-                .plus(RadioBrowserModule(this))
     }
 
     override val isSearching: Boolean
@@ -61,6 +59,8 @@ class RadioBrowserActivity : BaseActivity<RadioBrowserPresenter>(),
     override val currentQuery: String
         get() = searchView?.query?.toString() ?: ""
 
+    @Inject lateinit var fragmentInjector: DispatchingAndroidInjector<Fragment>
+    @Inject lateinit var presenterProvider: Lazy<RadioBrowserPresenter>
     @Inject lateinit var castContext: CastContext
 
     private lateinit var radioListFragment: RadioListFragment
@@ -83,8 +83,6 @@ class RadioBrowserActivity : BaseActivity<RadioBrowserPresenter>(),
         setTheme(R.style.AppTheme)
 
         super.onCreate(savedInstanceState)
-
-        component.inject(this)
 
         setContentView(R.layout.activity_radio_browser)
         setSupportActionBar(toolbar)
@@ -130,7 +128,7 @@ class RadioBrowserActivity : BaseActivity<RadioBrowserPresenter>(),
     }
 
     override fun restorePresenter() {
-        presenter = presenterManager[uuid] as? RadioBrowserPresenter ?: component.radioBrowserPresenter()
+        presenter = presenterManager[uuid] as? RadioBrowserPresenter ?: presenterProvider.get()
         presenterManager[uuid] = presenter
     }
 
@@ -160,29 +158,14 @@ class RadioBrowserActivity : BaseActivity<RadioBrowserPresenter>(),
         radioListFragment.showPlaybackError(error)
     }
 
+    override fun supportFragmentInjector() = fragmentInjector
+
     private fun subscribeToSearchView(searchView: SearchView) {
-        compositeDisposable.add(Flowable
-                .create<String>({
-                    val listener = object : SearchView.OnQueryTextListener {
-                        override fun onQueryTextChange(newText: String): Boolean {
-                            if (!it.isCancelled) {
-                                it.onNext(newText)
-                                return true
-                            }
-                            return false
-                        }
-
-                        override fun onQueryTextSubmit(query: String) = false
-                    }
-
-                    it.setCancellable {
-                        searchView.setOnQueryTextListener(null)
-                    }
-
-                    searchView.setOnQueryTextListener(listener)
-                }, BackpressureStrategy.LATEST)
+        compositeDisposable.add(searchView.queryTextChanges()
+                .skipInitialValue()
                 .throttleLast(100, TimeUnit.MILLISECONDS)
                 .debounce(200, TimeUnit.MILLISECONDS)
+                .map(CharSequence::toString)
                 .map(String::trim)
                 .distinctUntilChanged()
                 .observeOn(AndroidSchedulers.mainThread())

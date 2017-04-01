@@ -8,11 +8,10 @@ import com.bumptech.glide.load.engine.DiskCacheStrategy
 import dagger.Module
 import dagger.Provides
 import fr.simonlebras.radiofrance.R
-import fr.simonlebras.radiofrance.di.modules.FragmentModule
 import fr.simonlebras.radiofrance.ui.browser.player.MiniPlayerFragment
 
 @Module
-class MiniPlayerModule(fragment: MiniPlayerFragment) : FragmentModule<MiniPlayerFragment>(fragment) {
+class MiniPlayerModule {
     @Provides
     fun provideGlideRequest(fragment: MiniPlayerFragment): BitmapRequestBuilder<String, Bitmap> {
         return Glide.with(fragment)

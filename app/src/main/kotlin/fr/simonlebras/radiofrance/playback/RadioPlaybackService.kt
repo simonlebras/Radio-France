@@ -11,11 +11,10 @@ import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import com.google.android.gms.cast.framework.CastSession
 import com.google.android.gms.cast.framework.SessionManager
+import dagger.android.AndroidInjection
 import fr.simonlebras.radiofrance.BuildConfig
 import fr.simonlebras.radiofrance.R
-import fr.simonlebras.radiofrance.RadioFranceApplication
 import fr.simonlebras.radiofrance.playback.data.RadioProvider
-import fr.simonlebras.radiofrance.playback.di.modules.RadioPlaybackModule
 import fr.simonlebras.radiofrance.playback.mappers.MediaItemMapper
 import fr.simonlebras.radiofrance.utils.LogUtils
 import io.reactivex.disposables.CompositeDisposable
@@ -51,17 +50,13 @@ class RadioPlaybackService : MediaBrowserServiceCompat(), PlaybackManager.Callba
     @Inject lateinit var castSessionManager: SessionManager
     @Inject lateinit var castSessionManagerListener: CastSessionManagerListener
 
-    private val component by lazy(LazyThreadSafetyMode.NONE) {
-        (application as RadioFranceApplication).component
-                .plus(RadioPlaybackModule(this))
-    }
     private val compositeDisposable = CompositeDisposable()
     private lateinit var root: String
 
     override fun onCreate() {
-        super.onCreate()
+        AndroidInjection.inject(this)
 
-        component.inject(this)
+        super.onCreate()
 
         // Load the radios as soon as possible
         compositeDisposable.add(radioProvider.radios

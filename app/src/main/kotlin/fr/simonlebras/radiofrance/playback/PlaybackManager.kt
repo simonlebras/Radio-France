@@ -3,8 +3,10 @@ package fr.simonlebras.radiofrance.playback
 import android.content.Context
 import android.os.SystemClock
 import android.support.v4.media.session.PlaybackStateCompat
+import android.support.v4.media.session.PlaybackStateCompat.ERROR_CODE_UNKNOWN_ERROR
 import fr.simonlebras.radiofrance.R
 import fr.simonlebras.radiofrance.di.scopes.ServiceScope
+import fr.simonlebras.radiofrance.playback.di.modules.RadioPlaybackModule.Companion.LOCAL_KEY
 import fr.simonlebras.radiofrance.utils.DebugUtils
 import fr.simonlebras.radiofrance.utils.LogUtils
 import timber.log.Timber
@@ -14,9 +16,9 @@ import javax.inject.Named
 @ServiceScope
 class PlaybackManager @Inject constructor(val context: Context,
                                           val queueManager: QueueManager,
-                                          @Named("Local") localPlaybackFactory: PlaybackFactory) : Playback.Callback {
+                                          @Named(LOCAL_KEY) localPlaybackFactory: PlaybackFactory) : Playback.Callback {
     private companion object {
-        private val TAG = LogUtils.makeLogTag(PlaybackManager::class.java.simpleName)
+        val TAG = LogUtils.makeLogTag(PlaybackManager::class.java.simpleName)
     }
 
     var callback: Callback? = null
@@ -110,7 +112,7 @@ class PlaybackManager @Inject constructor(val context: Context,
         var playbackState = playback.playbackState
 
         if (error != null) {
-            builder.setErrorMessage(error)
+            builder.setErrorMessage(ERROR_CODE_UNKNOWN_ERROR, error)
             playbackState = PlaybackStateCompat.STATE_ERROR
         }
 
