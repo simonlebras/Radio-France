@@ -3,6 +3,7 @@ package fr.simonlebras.radiofrance.di.modules
 import android.content.Context
 import android.content.SharedPreferences
 import android.preference.PreferenceManager
+import com.facebook.stetho.okhttp3.StethoInterceptor
 import dagger.Module
 import dagger.Provides
 import fr.simonlebras.radiofrance.utils.DebugUtils
@@ -51,7 +52,8 @@ class ApplicationModule(private val context: Context) {
                 level = HttpLoggingInterceptor.Level.BODY
             }
 
-            builder.addInterceptor(loggingInterceptor)
+            builder.addNetworkInterceptor(loggingInterceptor)
+                    .addNetworkInterceptor(StethoInterceptor())
         }
 
         return builder.build()
