@@ -1,28 +1,36 @@
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
+apply from: "$project.rootDir/tools/git-version.gradle"
 
 def keystoreProperties = new Properties()
 keystoreProperties.load(new FileInputStream(rootProject.file("keystore.properties")))
 
 android {
-    compileSdkVersion 25
-    buildToolsVersion "25.0.2"
+    compileSdkVersion rootProject.compileSdkVersion
+    buildToolsVersion rootProject.buildToolsVersion
+
     defaultConfig {
         applicationId "fr.simonlebras.radiofrance"
-        minSdkVersion 19
-        targetSdkVersion 25
-        versionCode 1
-        versionName "1.0"
+        minSdkVersion rootProject.minSdkVersion
+        targetSdkVersion rootProject.targetSdkVersion
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
+        buildConfigField "String", "FIREBASE_ENDPOINT", "\"https://radio-france-77818.firebaseapp.com\""
     }
+
+    dexOptions {
+        preDexLibraries true
+    }
+
     aaptOptions {
         cruncherEnabled = false
     }
+
     kapt {
         generateStubs = true
     }
+
     signingConfigs {
         release {
             storeFile file(keystoreProperties['storeFile'])
@@ -31,12 +39,20 @@ android {
             keyPassword keystoreProperties['keyPassword']
         }
     }
+
     productFlavors {
-        prod
+        prod {
+            versionCode gitVersionCode
+            versionName gitVersionName
+        }
+
         dev {
             minSdkVersion 21
+            versionCode gitVersionCodeTime
+            versionName gitVersionName
         }
     }
+
     buildTypes {
         release {
             minifyEnabled true
@@ -45,12 +61,11 @@ android {
             productFlavors.prod.signingConfig signingConfigs.release
         }
     }
+
     sourceSets {
         main.java.srcDirs += 'src/main/kotlin'
     }
-    configurations.all {
-        resolutionStrategy.force 'com.google.code.findbugs:jsr305:3.0.1'
-    }
+
     variantFilter { variant ->
         if (variant.buildType.name == 'release') {
             variant.flavors.each { flavor ->
@@ -65,70 +80,58 @@ android {
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
 
-    androidTestCompile('com.android.support.test.espresso:espresso-core:2.2.2', {
+    androidTestCompile("com.android.support.test.espresso:espresso-core:$rootProject.espressoVersion", {
         exclude group: 'com.android.support', module: 'support-annotations'
     })
-    testCompile 'junit:junit:4.12'
+    androidTestCompile "com.google.code.findbugs:jsr305:$rootProject.jsr305Version"
+    testCompile "junit:junit:$rootProject.jUnitVersion"
 
-    compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+    compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
 
-    compile 'com.android.support:appcompat-v7:25.3.1'
-    compile 'com.android.support:recyclerview-v7:25.3.1'
-    compile 'com.android.support:cardview-v7:25.3.1'
-    compile 'com.android.support:design:25.3.1'
-    compile 'com.android.support:mediarouter-v7:25.3.1'
-    compile 'com.android.support.constraint:constraint-layout:1.0.2'
+    compile "com.android.support:appcompat-v7:$rootProject.supportLibraryVersion"
+    compile "com.android.support:recyclerview-v7:$rootProject.supportLibraryVersion"
+    compile "com.android.support:cardview-v7:$rootProject.supportLibraryVersion"
+    compile "com.android.support:design:$rootProject.supportLibraryVersion"
+    compile "com.android.support:mediarouter-v7:$rootProject.supportLibraryVersion"
+    compile "com.android.support.constraint:constraint-layout:$rootProject.constraintLayoutVersion"
 
-    compile 'com.google.android.gms:play-services-cast-framework:10.2.1'
-    releaseCompile 'com.google.firebase:firebase-crash:10.2.1'
+    compile "com.google.android.gms:play-services-cast-framework:$rootProject.playServicesVersion"
+    releaseCompile "com.google.firebase:firebase-crash:$rootProject.playServicesVersion"
 
-    compile 'com.google.dagger:dagger-android-support:2.10'
-    kapt 'com.google.dagger:dagger-compiler:2.10'
+    compile "com.google.dagger:dagger-android-support:$rootProject.daggerVersion"
+    kapt "com.google.dagger:dagger-compiler:$rootProject.daggerVersion"
 
-    compile 'io.reactivex.rxjava2:rxjava:2.0.8'
-    compile 'io.reactivex.rxjava2:rxandroid:2.0.1'
-    compile 'com.jakewharton.rxbinding2:rxbinding:2.0.0'
-    compile 'com.jakewharton.rxbinding2:rxbinding-appcompat-v7:2.0.0'
-    compile 'com.jakewharton.rxbinding2:rxbinding-appcompat-v7-kotlin:2.0.0'
+    compile "io.reactivex.rxjava2:rxjava:$rootProject.rxJavaVersion"
+    compile "io.reactivex.rxjava2:rxandroid:$rootProject.rxAndroidVersion"
+    compile "com.jakewharton.rxbinding2:rxbinding:$rootProject.rxBindingVersion"
+    compile "com.jakewharton.rxbinding2:rxbinding-appcompat-v7:$rootProject.rxBindingVersion"
+    compile "com.jakewharton.rxbinding2:rxbinding-appcompat-v7-kotlin:$rootProject.rxBindingVersion"
 
-    compile 'com.squareup.moshi:moshi:1.4.0'
+    compile "com.squareup.moshi:moshi:$rootProject.moshiVersion"
 
-    compile 'com.squareup.okhttp3:okhttp:3.6.0'
-    compile 'com.squareup.okhttp3:logging-interceptor:3.6.0'
+    compile "com.squareup.okhttp3:okhttp:$rootProject.okHttpVersion"
+    compile "com.squareup.okhttp3:logging-interceptor:$rootProject.okHttpVersion"
 
-    compile 'com.squareup.retrofit2:retrofit:2.2.0'
-    compile 'com.squareup.retrofit2:adapter-rxjava2:2.2.0'
-    compile 'com.squareup.retrofit2:converter-moshi:2.2.0'
+    compile "com.squareup.retrofit2:retrofit:$rootProject.retrofitVersion"
+    compile "com.squareup.retrofit2:adapter-rxjava2:$rootProject.retrofitVersion"
+    compile "com.squareup.retrofit2:converter-moshi:$rootProject.retrofitVersion"
 
-    compile 'com.github.bumptech.glide:glide:3.7.0'
-    compile('com.github.bumptech.glide:okhttp3-integration:1.4.0') {
+    compile "com.github.bumptech.glide:glide:$rootProject.glideVersion"
+    compile("com.github.bumptech.glide:okhttp3-integration:$rootProject.glideOkHttpVersion") {
         exclude group: 'glide-parent'
     }
 
-    compile 'com.google.android.exoplayer:exoplayer:r2.3.1'
+    compile "com.google.android.exoplayer:exoplayer:$rootProject.exoPlayerVersion"
 
-    compile 'com.jakewharton.timber:timber:4.5.1'
+    compile "com.jakewharton.timber:timber:$rootProject.timberVersion"
 
-    debugCompile 'com.squareup.leakcanary:leakcanary-android:1.5'
-    releaseCompile 'com.squareup.leakcanary:leakcanary-android-no-op:1.5'
-    testCompile 'com.squareup.leakcanary:leakcanary-android-no-op:1.5'
+    debugCompile "com.squareup.leakcanary:leakcanary-android:$rootProject.leakCanaryVersion"
+    releaseCompile "com.squareup.leakcanary:leakcanary-android-no-op:$rootProject.leakCanaryVersion"
+    testCompile "com.squareup.leakcanary:leakcanary-android-no-op:$rootProject.leakCanaryVersion"
 
-    compile 'com.facebook.stetho:stetho:1.4.2'
-    compile 'com.facebook.stetho:stetho-okhttp3:1.4.2'
-    compile 'com.facebook.stetho:stetho-timber:1.4.2'
-}
-
-repositories {
-    mavenCentral()
-}
-
-buildscript {
-    repositories {
-        jcenter()
-    }
-    dependencies {
-        classpath "org.jetbrains.kotlin:kotlin-android-extensions:$kotlin_version"
-    }
+    compile "com.facebook.stetho:stetho:$rootProject.stethoVersion"
+    compile "com.facebook.stetho:stetho-okhttp3:$rootProject.stethoVersion"
+    compile "com.facebook.stetho:stetho-timber:$rootProject.stethoVersion"
 }
 
 apply plugin: 'com.google.gms.google-services'

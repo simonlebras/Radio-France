@@ -16,6 +16,7 @@ import com.google.android.gms.cast.framework.SessionManager
 import com.google.android.gms.cast.framework.media.RemoteMediaClient
 import dagger.Module
 import dagger.Provides
+import fr.simonlebras.radiofrance.BuildConfig.FIREBASE_ENDPOINT
 import fr.simonlebras.radiofrance.di.scopes.ServiceScope
 import fr.simonlebras.radiofrance.playback.*
 import fr.simonlebras.radiofrance.playback.data.FirebaseService
@@ -32,8 +33,6 @@ import javax.inject.Named
 class RadioPlaybackModule {
     companion object {
         private const val LOCK_NAME = "Radio France lock"
-
-        private const val BASE_URL = "https://radio-france-77818.firebaseapp.com"
 
         const val LOCAL_KEY = "LOCAL_KEY"
         const val CAST_KEY = "CAST_KEY"
@@ -63,7 +62,7 @@ class RadioPlaybackModule {
     @ServiceScope
     fun provideRetrofit(okHttpClient: OkHttpClient): Retrofit {
         return Retrofit.Builder()
-                .baseUrl(BASE_URL)
+                .baseUrl(FIREBASE_ENDPOINT)
                 .client(okHttpClient)
                 .addCallAdapterFactory(RxJava2CallAdapterFactory.create())
                 .addConverterFactory(MoshiConverterFactory.create())
