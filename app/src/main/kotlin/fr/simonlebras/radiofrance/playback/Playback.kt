@@ -12,8 +12,6 @@ interface Playback {
     val isConnected: Boolean
         get() = true
 
-    val isFocused: Boolean
-
     val isPlaying: Boolean
 
     fun start() {

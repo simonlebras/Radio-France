@@ -43,9 +43,6 @@ class CastPlayback(val context: Context,
             return castSession?.isConnected == true
         }
 
-    override var isFocused: Boolean = true
-        get() = true
-
     override val isPlaying: Boolean
         get() = isConnected && remoteMediaClient.isPlaying
 

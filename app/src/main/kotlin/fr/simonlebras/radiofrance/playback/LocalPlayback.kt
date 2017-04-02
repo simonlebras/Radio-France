@@ -24,7 +24,6 @@ import com.google.android.exoplayer2.trackselection.DefaultTrackSelector
 import com.google.android.exoplayer2.trackselection.TrackSelectionArray
 import com.google.android.exoplayer2.upstream.DefaultHttpDataSourceFactory
 import fr.simonlebras.radiofrance.R
-import fr.simonlebras.radiofrance.extensions.isPlaying
 import fr.simonlebras.radiofrance.utils.DebugUtils
 import fr.simonlebras.radiofrance.utils.LogUtils
 import timber.log.Timber
@@ -45,11 +44,8 @@ class LocalPlayback constructor(val context: Context,
 
     override var callback: Playback.Callback? = null
 
-    override val isFocused: Boolean
-        get() = playOnFocusGain
-
     override val isPlaying: Boolean
-        get() = (exoPlayer?.isPlaying == true)
+        get() = playOnFocusGain || (exoPlayer?.playWhenReady == true)
 
     private var exoPlayer: SimpleExoPlayer? = null
     private val userAgent = context.getString(R.string.app_name)
@@ -60,7 +56,7 @@ class LocalPlayback constructor(val context: Context,
     private val mAudioNoisyReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (AudioManager.ACTION_AUDIO_BECOMING_NOISY == intent?.action) {
-                if (exoPlayer?.isPlaying == true) {
+                if (exoPlayer?.playWhenReady == true) {
                     val pauseIntent = Intent(context, RadioPlaybackService::class.java)
                     pauseIntent.action = RadioPlaybackService.ACTION_CMD
                     pauseIntent.putExtra(RadioPlaybackService.EXTRAS_CMD_NAME, RadioPlaybackService.CMD_PAUSE)
@@ -106,13 +102,11 @@ class LocalPlayback constructor(val context: Context,
 
     override fun pause() {
         if (playbackState == PlaybackStateCompat.STATE_PLAYING) {
-            if (exoPlayer?.isPlaying == true) {
+            if (exoPlayer?.playWhenReady == true) {
                 exoPlayer!!.playWhenReady = false
             }
 
             release(false)
-
-            abandonAudioFocus()
         }
 
         playbackState = PlaybackStateCompat.STATE_PAUSED
@@ -158,7 +152,7 @@ class LocalPlayback constructor(val context: Context,
                 (this.playbackState == PlaybackStateCompat.STATE_BUFFERING)) {
             this.playbackState = PlaybackStateCompat.STATE_PLAYING
 
-            callback?.onPlaybackStateChanged(this.playbackState)
+            configureExoPlayerState()
         }
     }
 
@@ -221,11 +215,13 @@ class LocalPlayback constructor(val context: Context,
                 pause()
             }
         } else {
+            registerAudioNoisyReceiver()
+
             val volume = if (audioFocus == AudioFocus.FOCUS_CAN_DUCK) AudioVolume.DUCK.volume else AudioVolume.NORMAL.volume
             exoPlayer?.volume = volume
 
             if (playOnFocusGain) {
-                if (exoPlayer?.isPlaying == false) {
+                if (exoPlayer?.playWhenReady == false) {
                     exoPlayer!!.playWhenReady = true
                     playbackState = PlaybackStateCompat.STATE_PLAYING
                 }

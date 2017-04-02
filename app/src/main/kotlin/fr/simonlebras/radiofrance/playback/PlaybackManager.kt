@@ -23,7 +23,7 @@ class PlaybackManager @Inject constructor(val context: Context,
 
     var callback: Callback? = null
     val isPlaying: Boolean
-        get() = playback.isFocused && playback.isPlaying
+        get() = playback.isPlaying
 
     private var playback = localPlaybackFactory.create(context)
 
@@ -65,7 +65,7 @@ class PlaybackManager @Inject constructor(val context: Context,
     }
 
     fun pause() {
-        if (playback.isFocused && playback.isPlaying) {
+        if (playback.isPlaying) {
             playback.pause()
             callback?.onPlaybackStop()
         }
@@ -169,7 +169,7 @@ class PlaybackManager @Inject constructor(val context: Context,
                 PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS or
                 PlaybackStateCompat.ACTION_SKIP_TO_NEXT
 
-        if (playback.isFocused && playback.isPlaying) {
+        if (playback.isPlaying) {
             actions = actions or PlaybackStateCompat.ACTION_PAUSE
         }
 
