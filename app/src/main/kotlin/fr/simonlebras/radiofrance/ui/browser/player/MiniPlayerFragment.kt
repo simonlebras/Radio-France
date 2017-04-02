@@ -105,15 +105,11 @@ class MiniPlayerFragment : BaseFragment<MiniPlayerPresenter>(), MiniPlayerPresen
             return
         }
 
-        var enablePlay = false
-        when (playbackState.state) {
-            PlaybackStateCompat.STATE_PAUSED, PlaybackStateCompat.STATE_STOPPED -> enablePlay = true
-            PlaybackStateCompat.STATE_ERROR -> {
-                callback!!.showPlaybackError(playbackState.errorMessage.toString())
-            }
+        if (playbackState.state == PlaybackStateCompat.STATE_ERROR) {
+            callback!!.showPlaybackError(playbackState.errorMessage.toString())
         }
 
-        if (enablePlay) {
+        if (playbackState.state != PlaybackStateCompat.STATE_PLAYING) {
             button_radio_play_pause.setImageDrawable(ContextCompat.getDrawable(activity, R.drawable.ic_play_arrow_pink_36dp))
         } else {
             button_radio_play_pause.setImageDrawable(ContextCompat.getDrawable(activity, R.drawable.ic_pause_pink_36dp))
