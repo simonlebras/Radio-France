@@ -163,7 +163,7 @@ class PlaybackManager @Inject constructor(val context: Context,
     }
 
     private fun getAvailableActions(): Long {
-        var actions = PlaybackStateCompat.ACTION_PLAY or
+        var actions = PlaybackStateCompat.ACTION_PLAY_PAUSE or
                 PlaybackStateCompat.ACTION_PLAY_FROM_MEDIA_ID or
                 PlaybackStateCompat.ACTION_PLAY_FROM_SEARCH or
                 PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS or
@@ -171,6 +171,8 @@ class PlaybackManager @Inject constructor(val context: Context,
 
         if (playback.isPlaying) {
             actions = actions or PlaybackStateCompat.ACTION_PAUSE
+        } else {
+            actions = actions or PlaybackStateCompat.ACTION_PLAY
         }
 
         return actions
