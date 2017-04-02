@@ -13,6 +13,7 @@ import android.support.v7.app.MediaRouteButton
 import android.support.v7.widget.SearchView
 import android.view.Menu
 import android.view.MenuItem
+import android.view.View.VISIBLE
 import com.google.android.gms.cast.framework.*
 import com.jakewharton.rxbinding2.support.v7.widget.queryTextChanges
 import dagger.Lazy
@@ -23,6 +24,7 @@ import fr.simonlebras.radiofrance.ui.base.BaseActivity
 import fr.simonlebras.radiofrance.ui.browser.list.RadioListFragment
 import fr.simonlebras.radiofrance.ui.browser.player.MiniPlayerFragment
 import io.reactivex.android.schedulers.AndroidSchedulers
+import kotlinx.android.synthetic.main.activity_radio_browser.*
 import kotlinx.android.synthetic.main.partial_toolbar.*
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
@@ -191,6 +193,8 @@ class RadioBrowserActivity : BaseActivity<RadioBrowserPresenter>(),
     }
 
     private fun showMiniPlayer() {
+        container_mini_controller.visibility = VISIBLE
+
         supportFragmentManager.beginTransaction()
                 .setCustomAnimations(R.anim.slide_in_bottom, R.anim.slide_out_bottom, R.anim.slide_in_top, R.anim.slide_out_top)
                 .show(miniPlayerFragment)
