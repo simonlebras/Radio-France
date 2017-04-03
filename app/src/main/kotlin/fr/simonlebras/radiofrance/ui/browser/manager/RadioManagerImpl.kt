@@ -138,7 +138,7 @@ class RadioManagerImpl @Inject constructor(val context: Context) : RadioManager 
     }
 
     override fun reset() {
-        retryCache?.reset()
+        retryCache?.dispose()
         compositeDisposable.clear()
     }
 }

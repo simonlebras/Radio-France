@@ -46,6 +46,6 @@ class RadioProviderImpl @Inject constructor(val firebaseService: FirebaseService
     }
 
     override fun reset() {
-        retryCache?.reset()
+        retryCache?.dispose()
     }
 }

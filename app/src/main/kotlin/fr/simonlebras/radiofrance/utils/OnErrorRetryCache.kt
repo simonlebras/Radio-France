@@ -8,23 +8,20 @@ class OnErrorRetryCache<T>(source: Observable<T>) {
     val result: Observable<T> = Observable.defer {
         val observable: Observable<T>
         while (true) {
-            val connection = cacheReference.get()
-            if (connection != null) {
-                observable = connection
-                break
+            cache.get()?.let {
+                return@defer it
             }
 
             val next = source
                     .doOnError {
-                        cacheReference.set(null)
-                        disposableReference.set(null)
+                        cache.set(null)
                     }
                     .replay(1)
                     .autoConnect(1) {
-                        disposableReference.set(it)
+                        disposable = it
                     }
 
-            if (cacheReference.compareAndSet(null, next)) {
+            if (cache.compareAndSet(null, next)) {
                 observable = next
                 break
             }
@@ -33,10 +30,10 @@ class OnErrorRetryCache<T>(source: Observable<T>) {
         observable
     }
 
-    private val cacheReference = AtomicReference<Observable<T>?>()
-    private val disposableReference = AtomicReference<Disposable?>()
+    @Volatile private var disposable: Disposable? = null
+    private val cache = AtomicReference<Observable<T>?>()
 
-    fun reset() {
-        disposableReference.get()?.dispose()
+    fun dispose() {
+        disposable?.dispose()
     }
 }
