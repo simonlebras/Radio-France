@@ -8,23 +8,25 @@ import java.util.*
 
 abstract class BaseActivity<T : BasePresenter<out BaseView>> : AppCompatActivity(), BaseFragment.BaseCallback {
     private companion object {
-        private const val BUNDLE_UUID = "BUNDLE_UUID"
+        const val BUNDLE_UUID = "BUNDLE_UUID"
     }
 
     override lateinit var presenterManager: PresenterManager
 
-    protected val compositeDisposable = CompositeDisposable()
     protected lateinit var presenter: T
     protected lateinit var uuid: UUID
+
+    protected val compositeDisposable = CompositeDisposable()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         AndroidInjection.inject(this)
 
-        super.onCreate(savedInstanceState)
+        restorePresenterManager()
 
         uuid = savedInstanceState?.get(BUNDLE_UUID) as? UUID ?: UUID.randomUUID()
-        restorePresenterManager()
         restorePresenter()
+
+        super.onCreate(savedInstanceState)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -33,14 +35,10 @@ abstract class BaseActivity<T : BasePresenter<out BaseView>> : AppCompatActivity
         super.onSaveInstanceState(outState)
     }
 
-    override fun onStop() {
-        presenter.onDetachView()
-
-        super.onStop()
-    }
-
     override fun onDestroy() {
         compositeDisposable.clear()
+
+        presenter.onDetachView()
 
         if (!isChangingConfigurations) {
             presenter.onDestroy()

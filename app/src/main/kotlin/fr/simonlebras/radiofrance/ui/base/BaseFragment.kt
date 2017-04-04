@@ -9,13 +9,15 @@ import java.util.*
 
 abstract class BaseFragment<T : BasePresenter<out BaseView>> : Fragment() {
     private companion object {
-        private const val BUNDLE_UUID = "BUNDLE_UUID"
+        const val BUNDLE_UUID = "BUNDLE_UUID"
     }
 
-    protected val compositeDisposable = CompositeDisposable()
+    protected var baseCallback: BaseCallback? = null
+
     protected lateinit var presenter: T
     protected lateinit var uuid: UUID
-    protected var baseCallback: BaseCallback? = null
+
+    protected val compositeDisposable = CompositeDisposable()
 
     override fun onAttach(context: Context) {
         AndroidSupportInjection.inject(this)
@@ -38,15 +40,15 @@ abstract class BaseFragment<T : BasePresenter<out BaseView>> : Fragment() {
         super.onSaveInstanceState(outState)
     }
 
-    override fun onStop() {
+    override fun onDestroyView() {
+        compositeDisposable.clear()
+
         presenter.onDetachView()
 
-        super.onStop()
+        super.onDestroyView()
     }
 
     override fun onDestroy() {
-        compositeDisposable.dispose()
-
         if (!activity.isChangingConfigurations) {
             presenter.onDestroy()
             baseCallback!!.presenterManager.remove(uuid)

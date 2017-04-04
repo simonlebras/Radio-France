@@ -12,7 +12,5 @@ class PresenterManager {
         cache[uuid] = presenter
     }
 
-    fun remove(uuid: UUID) {
-        cache.remove(uuid)
-    }
+    fun remove(uuid: UUID) = cache.remove(uuid)
 }
