@@ -9,13 +9,7 @@ import fr.simonlebras.radiofrance.ui.browser.manager.RadioManager
 import javax.inject.Inject
 
 @FragmentScope
-class MiniPlayerPresenter @Inject constructor(val radioManager: RadioManager) : BasePresenter<MiniPlayerPresenter.View>() {
-    override fun onDetachView() {
-        compositeDisposable.clear()
-
-        super.onDetachView()
-    }
-
+class MiniPlayerPresenter @Inject constructor(private val radioManager: RadioManager) : BasePresenter<MiniPlayerPresenter.View>() {
     fun subscribeToPlaybackUpdates() {
         compositeDisposable.add(radioManager.playbackUpdates
                 .subscribe {
@@ -45,8 +39,8 @@ class MiniPlayerPresenter @Inject constructor(val radioManager: RadioManager) : 
     }
 
     interface View : BaseView {
-        fun onMetadataChanged(metadata: MediaMetadataCompat?)
+        fun onMetadataChanged(metadata: MediaMetadataCompat)
 
-        fun onPlaybackStateChanged(playbackState: PlaybackStateCompat?)
+        fun onPlaybackStateChanged(playbackState: PlaybackStateCompat)
     }
 }

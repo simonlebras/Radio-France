@@ -4,7 +4,7 @@ import android.content.Context
 import android.net.Uri
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaSessionCompat
-import android.support.v4.media.session.PlaybackStateCompat
+import android.support.v4.media.session.PlaybackStateCompat.*
 import android.text.TextUtils
 import com.google.android.gms.cast.MediaInfo
 import com.google.android.gms.cast.MediaMetadata
@@ -15,25 +15,25 @@ import com.google.android.gms.common.images.WebImage
 import fr.simonlebras.radiofrance.R
 import fr.simonlebras.radiofrance.playback.data.RadioProvider
 import fr.simonlebras.radiofrance.utils.DebugUtils
-import fr.simonlebras.radiofrance.utils.LogUtils
 import fr.simonlebras.radiofrance.utils.MediaMetadataUtils
 import org.json.JSONException
 import org.json.JSONObject
 import timber.log.Timber
+import javax.inject.Inject
 
-class CastPlayback(val context: Context,
-                   val remoteMediaClient: RemoteMediaClient,
-                   val radioProvider: RadioProvider) : Playback, RemoteMediaClient.Listener {
+class CastPlayback @Inject constructor(
+        private val context: Context,
+        private val remoteMediaClient: RemoteMediaClient,
+        private val radioProvider: RadioProvider
+) : Playback, RemoteMediaClient.Listener {
     private companion object {
-        private val TAG = LogUtils.makeLogTag(CastPlayback::class.java.simpleName)
-
-        private const val MIME_TYPE_AUDIO_MPEG = "audio/mpeg"
-        private const val ITEM_ID = "ITEM_ID"
+        const val MIME_TYPE_AUDIO_MPEG = "audio/mpeg"
+        const val ITEM_ID = "ITEM_ID"
     }
 
     override var currentRadioId: String? = null
 
-    override var playbackState = PlaybackStateCompat.STATE_NONE
+    override var playbackState = STATE_NONE
 
     override var callback: Playback.Callback? = null
 
@@ -50,7 +50,7 @@ class CastPlayback(val context: Context,
         try {
             loadRadio(item.description.mediaId, true)
 
-            playbackState = PlaybackStateCompat.STATE_BUFFERING
+            playbackState = STATE_BUFFERING
 
             callback?.onPlaybackStateChanged(playbackState)
         } catch (e: JSONException) {
@@ -77,7 +77,7 @@ class CastPlayback(val context: Context,
     override fun stop(notify: Boolean) {
         remoteMediaClient.removeListener(this)
 
-        playbackState = PlaybackStateCompat.STATE_STOPPED
+        playbackState = STATE_STOPPED
 
         if (notify) {
             callback?.onPlaybackStateChanged(playbackState)
@@ -149,7 +149,7 @@ class CastPlayback(val context: Context,
             }
         } catch (e: JSONException) {
             DebugUtils.executeInDebugMode {
-                Timber.e(TAG, e, "Exception processing update metadata")
+                Timber.e(e, "Exception processing update metadata")
             }
         }
     }
@@ -159,19 +159,19 @@ class CastPlayback(val context: Context,
 
         when (status) {
             MediaStatus.PLAYER_STATE_BUFFERING -> {
-                playbackState = PlaybackStateCompat.STATE_BUFFERING
+                playbackState = STATE_BUFFERING
 
                 callback?.onPlaybackStateChanged(playbackState)
             }
             MediaStatus.PLAYER_STATE_PLAYING -> {
-                playbackState = PlaybackStateCompat.STATE_PLAYING
+                playbackState = STATE_PLAYING
 
                 setMetadataFromRemote()
 
                 callback?.onPlaybackStateChanged(playbackState)
             }
             MediaStatus.PLAYER_STATE_PAUSED -> {
-                playbackState = PlaybackStateCompat.STATE_PAUSED
+                playbackState = STATE_PAUSED
 
                 setMetadataFromRemote()
 
@@ -179,7 +179,7 @@ class CastPlayback(val context: Context,
             }
             else -> {
                 DebugUtils.executeInDebugMode {
-                    Timber.d(TAG, "State default : ", status)
+                    Timber.d("State default : ", status)
                 }
             }
         }

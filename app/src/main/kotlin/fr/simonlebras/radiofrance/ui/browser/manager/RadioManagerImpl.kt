@@ -19,9 +19,9 @@ import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 @ActivityScope
-class RadioManagerImpl @Inject constructor(val context: Context) : RadioManager {
+class RadioManagerImpl @Inject constructor(private val context: Context) : RadioManager {
     private companion object {
-        private const val TIMEOUT = 10L // in seconds
+        const val TIMEOUT = 10L // in seconds
     }
 
     override val connection: Observable<MediaControllerCompat> by lazy(LazyThreadSafetyMode.NONE) {
@@ -30,9 +30,7 @@ class RadioManagerImpl @Inject constructor(val context: Context) : RadioManager 
                     mediaBrowser = MediaBrowserCompat(context, ComponentName(context, RadioPlaybackService::class.java), object : MediaBrowserCompat.ConnectionCallback() {
                         override fun onConnected() {
                             mediaController = MediaControllerCompat(context, mediaBrowser.sessionToken)
-                            if (!it.isDisposed) {
-                                it.onNext(mediaController)
-                            }
+                            it.onNext(mediaController)
                         }
                     }, null)
 
@@ -56,21 +54,17 @@ class RadioManagerImpl @Inject constructor(val context: Context) : RadioManager 
                     mediaBrowser.subscribe(root, object : MediaBrowserCompat.SubscriptionCallback() {
                         override fun onChildrenLoaded(parentId: String, children: List<MediaBrowserCompat.MediaItem>) {
                             mediaBrowser.unsubscribe(root)
-                            if (!it.isDisposed) {
-                                if (children.isEmpty()) {
-                                    it.onError(SubscriptionException(parentId))
-                                    return
-                                }
-
-                                it.onNext(children)
-                                it.onComplete()
+                            if (children.isEmpty()) {
+                                it.onError(SubscriptionException(parentId))
+                                return
                             }
+
+                            it.onNext(children)
+                            it.onComplete()
                         }
 
                         override fun onError(parentId: String) {
-                            if (!it.isDisposed) {
-                                it.onError(SubscriptionException(parentId))
-                            }
+                            it.onError(SubscriptionException(parentId))
                         }
                     })
 
@@ -91,25 +85,27 @@ class RadioManagerImpl @Inject constructor(val context: Context) : RadioManager 
     }
 
     override val playbackUpdates: Observable<Any> by lazy(LazyThreadSafetyMode.NONE) {
-        Observable.create<Any> {
-            val callback = object : MediaControllerCompat.Callback() {
-                override fun onPlaybackStateChanged(state: PlaybackStateCompat) {
-                    it.onNext(state)
-                }
+        Observable
+                .create<Any> {
+                    val callback = object : MediaControllerCompat.Callback() {
+                        override fun onPlaybackStateChanged(state: PlaybackStateCompat) {
+                            it.onNext(state)
+                        }
 
-                override fun onMetadataChanged(metadata: MediaMetadataCompat?) {
-                    if (metadata != null) {
-                        it.onNext(metadata)
+                        override fun onMetadataChanged(metadata: MediaMetadataCompat?) {
+                            if (metadata != null) {
+                                it.onNext(metadata)
+                            }
+                        }
                     }
+
+                    it.setCancellable {
+                        mediaController.unregisterCallback(callback)
+                    }
+
+                    mediaController.registerCallback(callback)
                 }
-            }
-
-            it.setCancellable {
-                mediaController.unregisterCallback(callback)
-            }
-
-            mediaController.registerCallback(callback)
-        }
+                .share()
     }
 
     private lateinit var mediaBrowser: MediaBrowserCompat

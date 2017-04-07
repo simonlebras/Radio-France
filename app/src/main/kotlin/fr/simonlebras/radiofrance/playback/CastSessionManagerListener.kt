@@ -13,19 +13,21 @@ import javax.inject.Inject
 import javax.inject.Named
 
 @ServiceScope
-class CastSessionManagerListener @Inject constructor(val context: Context,
-                                                     val mediaSession: MediaSessionCompat,
-                                                     val playbackManager: PlaybackManager,
-                                                     val mediaRouter: MediaRouter,
-                                                     @Named(LOCAL_KEY) val localPlaybackFactory: PlaybackFactory,
-                                                     @Named(CAST_KEY) val castPlaybackFactory: PlaybackFactory) : SessionManagerListener<CastSession> {
+class CastSessionManagerListener @Inject constructor(
+        private val context: Context,
+        private val mediaSession: MediaSessionCompat,
+        private val playbackManager: PlaybackManager,
+        private val mediaRouter: MediaRouter,
+        private @Named(LOCAL_KEY) val localPlaybackFactory: (Context) -> Playback,
+        private @Named(CAST_KEY) val castPlaybackFactory: (Context) -> Playback
+) : SessionManagerListener<CastSession> {
     private val sessionExtras = Bundle()
 
     override fun onSessionEnded(session: CastSession, error: Int) {
         sessionExtras.remove(RadioPlaybackService.EXTRA_CONNECTED_CAST)
         mediaSession.setExtras(sessionExtras)
 
-        val playback = localPlaybackFactory.create(context)
+        val playback = localPlaybackFactory(context)
         mediaRouter.setMediaSessionCompat(null)
         playbackManager.switchToPlayback(playback, false)
     }
@@ -36,7 +38,7 @@ class CastSessionManagerListener @Inject constructor(val context: Context,
         sessionExtras.putString(RadioPlaybackService.EXTRA_CONNECTED_CAST, session.castDevice.friendlyName)
         mediaSession.setExtras(sessionExtras)
 
-        val playback = castPlaybackFactory.create(context)
+        val playback = castPlaybackFactory(context)
         mediaRouter.setMediaSessionCompat(mediaSession)
         playbackManager.switchToPlayback(playback, true)
     }

@@ -1,5 +1,6 @@
 package fr.simonlebras.radiofrance.ui.browser.list
 
+import android.support.v4.media.session.PlaybackStateCompat
 import fr.simonlebras.radiofrance.di.scopes.FragmentScope
 import fr.simonlebras.radiofrance.models.Radio
 import fr.simonlebras.radiofrance.ui.base.BasePresenter
@@ -7,21 +8,69 @@ import fr.simonlebras.radiofrance.ui.base.BaseView
 import fr.simonlebras.radiofrance.ui.browser.manager.RadioManager
 import io.reactivex.Observable
 import io.reactivex.android.schedulers.AndroidSchedulers
-import io.reactivex.schedulers.Schedulers
+import io.reactivex.functions.BiFunction
+import io.reactivex.subjects.BehaviorSubject
 import io.reactivex.subjects.PublishSubject
 import javax.inject.Inject
 
 @FragmentScope
-class RadioListPresenter @Inject constructor(val radioManager: RadioManager) : BasePresenter<RadioListPresenter.View>() {
+class RadioListPresenter @Inject constructor(private val radioManager: RadioManager) : BasePresenter<RadioListPresenter.View>() {
     private var refreshSubject = PublishSubject.create<Boolean>()
-    private var searchSubject = PublishSubject.create<String>()
+    private var searchSubject = BehaviorSubject.create<String>()
 
     fun connect() {
         compositeDisposable.add(radioManager.connection
                 .subscribe {
-                    subscribeToRefreshEvents()
-                    refresh()
+                    view?.onConnected()
                 })
+    }
+
+    fun subscribeToRefreshAndSearchEvents() {
+        compositeDisposable.add(Observable
+                .combineLatest(refreshSubject, searchSubject.startWith(""), BiFunction { _: Boolean, search: String -> search })
+                .switchMap {
+                    val query = it
+                    radioManager.radios
+                            .onErrorResumeNext(Observable.just(emptyList()))
+                            .flatMap {
+                                Observable.fromIterable(it)
+                                        .filter {
+                                            it.name.toLowerCase().contains(query.toLowerCase())
+                                        }
+                                        .toList()
+                                        .map {
+                                            Pair(query, it)
+                                        }
+                                        .toObservable()
+                            }
+                }
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe {
+                    val query = it.first
+                    val radios = it.second
+
+                    if (radios.isEmpty()) {
+                        if (query.isNullOrBlank()) {
+                            view?.showRefreshError()
+                        } else {
+                            view?.showSearchError()
+                        }
+
+                        return@subscribe
+                    }
+
+                    view?.showRadios(radios)
+                })
+    }
+
+    fun subscribeToPlaybackUpdates() {
+        compositeDisposable.add(radioManager.playbackUpdates
+                .subscribe {
+                    if (it is PlaybackStateCompat) {
+                        view?.onPlaybackStateChanged(it)
+                    }
+                }
+        )
     }
 
     fun refresh() {
@@ -36,58 +85,15 @@ class RadioListPresenter @Inject constructor(val radioManager: RadioManager) : B
         radioManager.play(id)
     }
 
-    private fun subscribeToRefreshEvents() {
-        compositeDisposable.add(refreshSubject
-                .switchMap {
-                    radioManager.radios
-                            .onErrorResumeNext(Observable.create {
-                                it.onNext(emptyList())
-                            })
-                }
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe {
-                    if (it.isEmpty()) {
-                        view?.showRefreshError()
-                        return@subscribe
-                    }
-
-                    subscribeToSearchEvents()
-
-                    val query = view?.currentQuery ?: ""
-                    if (!query.isNullOrEmpty()) {
-                        searchRadios(query)
-                        return@subscribe
-                    }
-
-                    view?.updateRadios(it)
-                })
-    }
-
-    private fun subscribeToSearchEvents() {
-        compositeDisposable.add(searchSubject
-                .switchMap {
-                    val query = it
-                    radioManager.radios
-                            .subscribeOn(Schedulers.computation())
-                            .map {
-                                it.filter {
-                                    it.name.toUpperCase().contains(query.toUpperCase())
-                                }
-                            }
-                }
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe {
-                    view?.updateRadios(it)
-                })
-    }
-
     interface View : BaseView {
-        val isSearching: Boolean
+        fun onConnected()
 
-        val currentQuery: String
-
-        fun updateRadios(radios: List<Radio>)
+        fun showRadios(radios: List<Radio>)
 
         fun showRefreshError()
+
+        fun showSearchError()
+
+        fun onPlaybackStateChanged(playbackState: PlaybackStateCompat)
     }
 }

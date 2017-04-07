@@ -2,6 +2,7 @@ package fr.simonlebras.radiofrance.ui.browser
 
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaControllerCompat
+import android.support.v4.media.session.PlaybackStateCompat
 import fr.simonlebras.radiofrance.di.scopes.ActivityScope
 import fr.simonlebras.radiofrance.ui.base.BasePresenter
 import fr.simonlebras.radiofrance.ui.base.BaseView
@@ -9,13 +10,9 @@ import fr.simonlebras.radiofrance.ui.browser.manager.RadioManager
 import javax.inject.Inject
 
 @ActivityScope
-class RadioBrowserPresenter @Inject constructor(val radioManager: RadioManager) : BasePresenter<RadioBrowserPresenter.View>() {
-    override fun onDetachView() {
-        compositeDisposable.clear()
-
-        super.onDetachView()
-    }
-
+class RadioBrowserPresenter @Inject constructor(
+        private val radioManager: RadioManager
+) : BasePresenter<RadioBrowserPresenter.View>() {
     override fun onDestroy() {
         radioManager.reset()
 
@@ -25,32 +22,27 @@ class RadioBrowserPresenter @Inject constructor(val radioManager: RadioManager) 
     fun connect() {
         compositeDisposable.add(radioManager.connection
                 .subscribe {
-                    view?.setMediaController(it)
                     view?.onConnected(it)
-                    view?.changeMiniPlayerVisibility()
-                    subscribeToPlaybackUpdates()
                 })
     }
 
-    private fun subscribeToPlaybackUpdates() {
+    fun subscribeToPlaybackUpdates() {
         compositeDisposable.add(radioManager.playbackUpdates
                 .subscribe {
                     if (it is MediaMetadataCompat) {
-                        view?.updateToolbarTitle(it.description.title?.toString())
+                        view?.onMetadataChanged(it)
+                    } else if (it is PlaybackStateCompat) {
+                        view?.onPlaybackStateChanged(it)
                     }
-
-                    view?.changeMiniPlayerVisibility()
                 }
         )
     }
 
     interface View : BaseView {
-        fun setMediaController(mediaController: MediaControllerCompat)
-
         fun onConnected(mediaController: MediaControllerCompat)
 
-        fun changeMiniPlayerVisibility()
+        fun onMetadataChanged(metadata: MediaMetadataCompat)
 
-        fun updateToolbarTitle(title: String?)
+        fun onPlaybackStateChanged(playbackState: PlaybackStateCompat)
     }
 }

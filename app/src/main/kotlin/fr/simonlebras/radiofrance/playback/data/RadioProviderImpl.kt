@@ -14,7 +14,7 @@ import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 @ServiceScope
-class RadioProviderImpl @Inject constructor(val firebaseService: FirebaseService) : RadioProvider {
+class RadioProviderImpl @Inject constructor(private val firebaseService: FirebaseService) : RadioProvider {
     @Volatile override var queue: List<MediaSessionCompat.QueueItem> = emptyList()
 
     @Volatile override var metadata: Map<String, MediaMetadataCompat> = linkedMapOf()

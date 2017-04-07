@@ -15,13 +15,15 @@ package fr.simonlebras.radiofrance.models
  * @property largeLogo The URL of the logo in large size.
  * @constructor Creates a radio.
  */
-data class Radio(var id: String = "",
-                 var name: String = "",
-                 var description: String = "",
-                 var stream: String = "",
-                 var website: String = "",
-                 var twitter: String = "",
-                 var facebook: String = "",
-                 var smallLogo: String = "",
-                 var mediumLogo: String = "",
-                 var largeLogo: String = "")
+data class Radio(
+        var id: String = "",
+        var name: String = "",
+        var description: String = "",
+        var stream: String = "",
+        var website: String = "",
+        var twitter: String = "",
+        var facebook: String = "",
+        var smallLogo: String = "",
+        var mediumLogo: String = "",
+        var largeLogo: String = ""
+)

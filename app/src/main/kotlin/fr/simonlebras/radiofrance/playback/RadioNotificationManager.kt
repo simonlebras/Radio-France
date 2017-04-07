@@ -13,6 +13,7 @@ import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
+import android.support.v4.media.session.PlaybackStateCompat.*
 import android.support.v7.app.NotificationCompat
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
@@ -24,27 +25,26 @@ import fr.simonlebras.radiofrance.R
 import fr.simonlebras.radiofrance.di.scopes.ServiceScope
 import fr.simonlebras.radiofrance.ui.browser.RadioBrowserActivity
 import fr.simonlebras.radiofrance.utils.DebugUtils
-import fr.simonlebras.radiofrance.utils.LogUtils
 import fr.simonlebras.radiofrance.utils.MediaMetadataUtils
 import timber.log.Timber
 import javax.inject.Inject
 
 @ServiceScope
-class RadioNotificationManager @Inject constructor(val context: Context,
-                                                   val service: RadioPlaybackService,
-                                                   val notificationManager: NotificationManagerCompat) : BroadcastReceiver() {
+class RadioNotificationManager @Inject constructor(
+        private val context: Context,
+        private val service: RadioPlaybackService,
+        private val notificationManager: NotificationManagerCompat
+) : BroadcastReceiver() {
     private companion object {
-        private val TAG = LogUtils.makeLogTag(RadioNotificationManager::class.java.simpleName)
+        const val NOTIFICATION_ID = 1
 
-        private const val NOTIFICATION_ID = 1
+        const val REQUEST_CODE = 1
 
-        private const val REQUEST_CODE = 1
-
-        private const val ACTION_PLAY = "${BuildConfig.APPLICATION_ID}.play"
-        private const val ACTION_PAUSE = "${BuildConfig.APPLICATION_ID}.pause"
-        private const val ACTION_PREV = "${BuildConfig.APPLICATION_ID}.prev"
-        private const val ACTION_NEXT = "${BuildConfig.APPLICATION_ID}.next"
-        private const val ACTION_STOP_CASTING = "${BuildConfig.APPLICATION_ID}.stopCasting"
+        const val ACTION_PLAY = "${BuildConfig.APPLICATION_ID}.play"
+        const val ACTION_PAUSE = "${BuildConfig.APPLICATION_ID}.pause"
+        const val ACTION_PREV = "${BuildConfig.APPLICATION_ID}.prev"
+        const val ACTION_NEXT = "${BuildConfig.APPLICATION_ID}.next"
+        const val ACTION_STOP_CASTING = "${BuildConfig.APPLICATION_ID}.stopCasting"
     }
 
     private val packageName = service.packageName
@@ -72,8 +72,7 @@ class RadioNotificationManager @Inject constructor(val context: Context,
         override fun onPlaybackStateChanged(state: PlaybackStateCompat) {
             playbackState = state
 
-            if ((state.state == PlaybackStateCompat.STATE_STOPPED) ||
-                    (state.state == PlaybackStateCompat.STATE_NONE)) {
+            if ((state.state == STATE_STOPPED) || (state.state == STATE_NONE)) {
                 stopNotification()
             } else {
                 createNotification()?.let {
@@ -120,7 +119,7 @@ class RadioNotificationManager @Inject constructor(val context: Context,
             }
             else -> {
                 DebugUtils.executeInDebugMode {
-                    Timber.e(TAG, "Unknown action: ", action)
+                    Timber.e("Unknown action: ", action)
                 }
             }
         }
@@ -211,7 +210,7 @@ class RadioNotificationManager @Inject constructor(val context: Context,
         val builder = NotificationCompat.Builder(service)
 
         var playPauseButtonPosition = 0
-        if (playbackState!!.actions and PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS != 0L) {
+        if (playbackState!!.actions and ACTION_SKIP_TO_PREVIOUS != 0L) {
             builder.addAction(R.drawable.ic_skip_previous_white_24dp, service.getString(R.string.action_previous), previousIntent)
 
             playPauseButtonPosition = 1
@@ -219,7 +218,7 @@ class RadioNotificationManager @Inject constructor(val context: Context,
 
         addPlayPauseAction(builder)
 
-        if (playbackState!!.actions and PlaybackStateCompat.ACTION_SKIP_TO_NEXT != 0L) {
+        if (playbackState!!.actions and ACTION_SKIP_TO_NEXT != 0L) {
             builder.addAction(R.drawable.ic_skip_next_white_24dp, service.getString(R.string.action_next), nextIntent)
         }
 
@@ -275,7 +274,7 @@ class RadioNotificationManager @Inject constructor(val context: Context,
     }
 
     private fun addPlayPauseAction(builder: NotificationCompat.Builder) {
-        if (playbackState!!.state == PlaybackStateCompat.STATE_PLAYING) {
+        if (playbackState!!.state == STATE_PLAYING) {
             builder.addAction(R.drawable.ic_pause_white_24dp, service.getString(R.string.action_pause), pauseIntent)
         } else {
             builder.addAction(R.drawable.ic_play_arrow_white_24dp, service.getString(R.string.action_play), playIntent)
@@ -288,6 +287,6 @@ class RadioNotificationManager @Inject constructor(val context: Context,
             return
         }
 
-        builder.setOngoing(playbackState!!.state == PlaybackStateCompat.STATE_PLAYING)
+        builder.setOngoing(playbackState!!.state == STATE_PLAYING)
     }
 }

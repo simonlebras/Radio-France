@@ -1,56 +1,41 @@
 package fr.simonlebras.radiofrance.ui.browser.list
 
-import android.content.Context
 import android.os.Bundle
 import android.support.design.widget.CoordinatorLayout
 import android.support.design.widget.Snackbar
 import android.support.v4.content.ContextCompat
+import android.support.v4.media.session.PlaybackStateCompat
+import android.support.v4.media.session.PlaybackStateCompat.STATE_ERROR
 import android.support.v7.util.DiffUtil
 import android.support.v7.widget.DefaultItemAnimator
 import android.support.v7.widget.LinearLayoutManager
 import android.view.LayoutInflater
 import android.view.View
+import android.view.View.GONE
+import android.view.View.VISIBLE
 import android.view.ViewGroup
 import dagger.Lazy
 import fr.simonlebras.radiofrance.R
 import fr.simonlebras.radiofrance.models.Radio
 import fr.simonlebras.radiofrance.ui.base.BaseActivity
 import fr.simonlebras.radiofrance.ui.base.BaseFragment
-import io.reactivex.Observable
-import io.reactivex.subjects.PublishSubject
 import kotlinx.android.synthetic.main.fragment_radio_list.*
 import kotlinx.android.synthetic.main.fragment_radio_list.view.*
 import javax.inject.Inject
 
 class RadioListFragment : BaseFragment<RadioListPresenter>(), RadioListPresenter.View {
-    override val isSearching: Boolean
-        get() = callback?.isSearching ?: false
-
-    override val currentQuery: String
-        get() = callback?.currentQuery ?: ""
-
     @Inject lateinit var presenterProvider: Lazy<RadioListPresenter>
     @Inject lateinit var adapter: RadioListAdapter
 
-    private var callback: Callback? = null
     private var snackBar: Snackbar? = null
-    private val updateSubject = PublishSubject.create <RadioListDiffCallback>()
-
-    override fun onAttach(context: Context) {
-        super.onAttach(context)
-
-        callback = context as Callback
-    }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         val view = inflater.inflate(R.layout.fragment_radio_list, container, false)
 
         view.recycler_view.adapter = adapter
         view.recycler_view.itemAnimator = DefaultItemAnimator()
+        view.recycler_view.layoutManager = LinearLayoutManager(context)
         view.recycler_view.setHasFixedSize(true)
-
-        val layoutManager = LinearLayoutManager(context)
-        view.recycler_view.layoutManager = layoutManager
 
         val width = resources.getDimensionPixelSize(R.dimen.list_divider_width).toFloat()
         val decoration = DividerItemDecoration(ContextCompat.getColor(context, R.color.colorDivider), width)
@@ -64,22 +49,14 @@ class RadioListFragment : BaseFragment<RadioListPresenter>(), RadioListPresenter
             presenter.refresh()
         }
 
-        subscribeToUpdateEvents()
-
         return view
     }
 
-    override fun onStart() {
-        super.onStart()
+    override fun onViewCreated(view: View?, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
 
         presenter.onAttachView(this)
         presenter.connect()
-    }
-
-    override fun onDetach() {
-        callback = null
-
-        super.onDetach()
     }
 
     override fun restorePresenter() {
@@ -88,8 +65,22 @@ class RadioListFragment : BaseFragment<RadioListPresenter>(), RadioListPresenter
         presenterManager[uuid] = presenter
     }
 
-    override fun updateRadios(radios: List<Radio>) {
-        updateSubject.onNext(RadioListDiffCallback(adapter.radios, radios))
+    override fun onConnected() {
+        presenter.subscribeToPlaybackUpdates()
+
+        presenter.subscribeToRefreshAndSearchEvents()
+        presenter.refresh()
+    }
+
+    override fun showRadios(radios: List<Radio>) {
+        val diffResult = DiffUtil.calculateDiff(RadioListDiffCallback(adapter.radios, radios))
+
+        showRecyclerView()
+
+        adapter.radios = radios
+        diffResult.dispatchUpdatesTo(adapter)
+
+        recycler_view.scrollToPosition(0)
     }
 
     override fun showRefreshError() {
@@ -98,72 +89,56 @@ class RadioListFragment : BaseFragment<RadioListPresenter>(), RadioListPresenter
         showRetryAction()
     }
 
-    fun searchRadios(query: String) {
-        presenter.searchRadios(query)
+    override fun showSearchError() {
+        showNoResultView()
+
+        adapter.radios = emptyList()
+        adapter.notifyDataSetChanged()
     }
 
-    fun showPlaybackError(error: String) {
-        Snackbar.make(view as CoordinatorLayout, error, Snackbar.LENGTH_LONG)
-                .show()
+    override fun onPlaybackStateChanged(playbackState: PlaybackStateCompat) {
+        if (playbackState.state == STATE_ERROR) {
+            Snackbar.make(view as CoordinatorLayout, playbackState.errorMessage, Snackbar.LENGTH_LONG)
+                    .show()
+        }
+    }
+
+    fun searchRadios(query: String) {
+        presenter.searchRadios(query)
     }
 
     fun onRadioSelected(id: String) {
         presenter.play(id)
     }
 
-    private fun subscribeToUpdateEvents() {
-        compositeDisposable.add(updateSubject
-                .switchMap {
-                    Observable.just(Pair(it.newList, DiffUtil.calculateDiff(it)))
-                }
-                .subscribe({
-                    val newList = it.first
-                    if (newList.isEmpty()) {
-                        showNoResultView()
-
-                        adapter.radios = newList
-                        adapter.notifyDataSetChanged()
-                    } else {
-                        showRecyclerView()
-
-                        adapter.radios = newList
-                        it.second.dispatchUpdatesTo(adapter)
-
-                        if (isSearching) {
-                            recycler_view.scrollToPosition(0)
-                        }
-                    }
-                }))
-    }
-
     private fun showProgressBar() {
-        progress_bar.visibility = View.VISIBLE
-        recycler_view.visibility = View.GONE
-        empty_view.visibility = View.GONE
-        text_no_result.visibility = View.GONE
+        progress_bar.visibility = VISIBLE
+        recycler_view.visibility = GONE
+        empty_view.visibility = GONE
+        text_no_result.visibility = GONE
     }
 
     private fun showRecyclerView() {
-        if (recycler_view.visibility != View.VISIBLE) {
-            progress_bar.visibility = View.GONE
-            recycler_view.visibility = View.VISIBLE
-            empty_view.visibility = View.GONE
-            text_no_result.visibility = View.GONE
+        if (recycler_view.visibility != VISIBLE) {
+            progress_bar.visibility = GONE
+            recycler_view.visibility = VISIBLE
+            empty_view.visibility = GONE
+            text_no_result.visibility = GONE
         }
     }
 
     private fun showEmptyView() {
-        progress_bar.visibility = View.GONE
-        recycler_view.visibility = View.GONE
-        empty_view.visibility = View.VISIBLE
-        text_no_result.visibility = View.GONE
+        progress_bar.visibility = GONE
+        recycler_view.visibility = GONE
+        empty_view.visibility = VISIBLE
+        text_no_result.visibility = GONE
     }
 
     private fun showNoResultView() {
-        progress_bar.visibility = View.GONE
-        recycler_view.visibility = View.GONE
-        empty_view.visibility = View.GONE
-        text_no_result.visibility = View.VISIBLE
+        progress_bar.visibility = GONE
+        recycler_view.visibility = GONE
+        empty_view.visibility = GONE
+        text_no_result.visibility = VISIBLE
     }
 
     private fun showRetryAction() {
@@ -175,11 +150,5 @@ class RadioListFragment : BaseFragment<RadioListPresenter>(), RadioListPresenter
                 }
 
         snackBar!!.show()
-    }
-
-    interface Callback {
-        val isSearching: Boolean
-
-        val currentQuery: String
     }
 }

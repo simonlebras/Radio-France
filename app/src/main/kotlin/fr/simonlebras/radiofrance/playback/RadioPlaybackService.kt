@@ -16,7 +16,6 @@ import fr.simonlebras.radiofrance.BuildConfig
 import fr.simonlebras.radiofrance.R
 import fr.simonlebras.radiofrance.playback.data.RadioProvider
 import fr.simonlebras.radiofrance.playback.mappers.MediaItemMapper
-import fr.simonlebras.radiofrance.utils.LogUtils
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.observers.DisposableSingleObserver
 import java.util.concurrent.TimeUnit
@@ -27,7 +26,7 @@ import javax.inject.Inject
  */
 class RadioPlaybackService : MediaBrowserServiceCompat(), PlaybackManager.Callback, QueueManager.Listener {
     companion object {
-        val TAG = LogUtils.makeLogTag(RadioPlaybackService::class.java.simpleName)
+        val TAG: String = RadioPlaybackService::class.java.simpleName
 
         const val ACTION_CMD = "${BuildConfig.APPLICATION_ID}.ACTION_CMD"
 

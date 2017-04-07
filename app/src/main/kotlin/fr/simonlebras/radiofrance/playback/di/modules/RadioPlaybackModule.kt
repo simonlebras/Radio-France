@@ -28,6 +28,7 @@ import retrofit2.Retrofit
 import retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory
 import retrofit2.converter.moshi.MoshiConverterFactory
 import javax.inject.Named
+import javax.inject.Provider
 
 @Module
 class RadioPlaybackModule {
@@ -120,22 +121,14 @@ class RadioPlaybackModule {
     @Provides
     @ServiceScope
     @Named(LOCAL_KEY)
-    fun provideLocalPlaybackFactory(): PlaybackFactory {
-        return object : PlaybackFactory {
-            override fun create(context: Context): Playback {
-                return LocalPlayback(context, provideAudioManager(context), provideWifiLock(context), provideWakeLock(context))
-            }
-        }
+    fun provideLocalPlaybackFactory(provider: Provider<LocalPlayback>): Function1<@JvmWildcard Context, @JvmWildcard Playback> {
+        return { provider.get() }
     }
 
     @Provides
     @ServiceScope
     @Named(CAST_KEY)
-    fun provideCastPlaybackFactory(radioProvider: RadioProviderImpl): PlaybackFactory {
-        return object : PlaybackFactory {
-            override fun create(context: Context): Playback {
-                return CastPlayback(context, provideRemoteMediaClient(context), radioProvider)
-            }
-        }
+    fun provideCastPlaybackFactory(provider: Provider<CastPlayback>): Function1<@JvmWildcard Context, @JvmWildcard Playback> {
+        return { provider.get() }
     }
 }

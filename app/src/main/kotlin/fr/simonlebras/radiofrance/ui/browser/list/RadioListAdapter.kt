@@ -1,16 +1,17 @@
 package fr.simonlebras.radiofrance.ui.browser.list
 
 import android.content.Intent
-import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Bundle
+import android.support.v4.content.ContextCompat
 import android.support.v7.widget.PopupMenu
 import android.support.v7.widget.RecyclerView
 import android.support.v7.widget.RecyclerView.NO_POSITION
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import com.bumptech.glide.BitmapRequestBuilder
+import com.bumptech.glide.Glide
+import com.bumptech.glide.load.engine.DiskCacheStrategy
 import fr.simonlebras.radiofrance.R
 import fr.simonlebras.radiofrance.di.scopes.FragmentScope
 import fr.simonlebras.radiofrance.models.Radio
@@ -18,8 +19,7 @@ import kotlinx.android.synthetic.main.list_item_radio.view.*
 import javax.inject.Inject
 
 @FragmentScope
-class RadioListAdapter @Inject constructor(val fragment: RadioListFragment,
-                                           val glideRequest: BitmapRequestBuilder<String, Bitmap>) : RecyclerView.Adapter<RadioListAdapter.ViewHolder>() {
+class RadioListAdapter @Inject constructor(private val fragment: RadioListFragment) : RecyclerView.Adapter<RadioListAdapter.ViewHolder>() {
     var radios: List<Radio> = emptyList()
 
     private val inflater = LayoutInflater.from(fragment.context)
@@ -118,7 +118,14 @@ class RadioListAdapter @Inject constructor(val fragment: RadioListFragment,
         }
 
         fun bindRadioLogo(logoUrl: String) {
-            glideRequest.load(logoUrl).into(itemView.image_radio_logo)
+            Glide.with(fragment)
+                    .from(String::class.java)
+                    .asBitmap()
+                    .placeholder(ContextCompat.getDrawable(fragment.context, R.drawable.ic_radio_blue_40dp))
+                    .error(ContextCompat.getDrawable(fragment.context, R.drawable.ic_radio_blue_40dp))
+                    .diskCacheStrategy(DiskCacheStrategy.ALL)
+                    .load(logoUrl)
+                    .into(itemView.image_radio_logo)
         }
     }
 }

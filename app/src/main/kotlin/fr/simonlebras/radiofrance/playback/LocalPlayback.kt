@@ -10,7 +10,7 @@ import android.net.wifi.WifiManager
 import android.os.Handler
 import android.os.PowerManager
 import android.support.v4.media.session.MediaSessionCompat
-import android.support.v4.media.session.PlaybackStateCompat
+import android.support.v4.media.session.PlaybackStateCompat.*
 import android.text.TextUtils
 import com.google.android.exoplayer2.*
 import com.google.android.exoplayer2.extractor.ExtractorsFactory
@@ -25,22 +25,22 @@ import com.google.android.exoplayer2.trackselection.TrackSelectionArray
 import com.google.android.exoplayer2.upstream.DefaultHttpDataSourceFactory
 import fr.simonlebras.radiofrance.R
 import fr.simonlebras.radiofrance.utils.DebugUtils
-import fr.simonlebras.radiofrance.utils.LogUtils
 import timber.log.Timber
+import javax.inject.Inject
 
-class LocalPlayback constructor(val context: Context,
-                                val audioManager: AudioManager,
-                                val wifiLock: WifiManager.WifiLock,
-                                val wakeLock: PowerManager.WakeLock) : Playback, AudioManager.OnAudioFocusChangeListener, ExoPlayer.EventListener {
+class LocalPlayback @Inject constructor(
+        private val context: Context,
+        private val audioManager: AudioManager,
+        private val wifiLock: WifiManager.WifiLock,
+        private val wakeLock: PowerManager.WakeLock
+) : Playback, AudioManager.OnAudioFocusChangeListener, ExoPlayer.EventListener {
     private companion object {
-        private val TAG = LogUtils.makeLogTag(LocalPlayback::class.java.simpleName)
-
-        private const val TIMEOUT = 5000 // in milliseconds
+        const val TIMEOUT = 5000 // in milliseconds
     }
 
     override var currentRadioId: String? = null
 
-    override var playbackState = PlaybackStateCompat.STATE_NONE
+    override var playbackState = STATE_NONE
 
     override var callback: Playback.Callback? = null
 
@@ -79,17 +79,16 @@ class LocalPlayback constructor(val context: Context,
             currentRadioId = radioId
         }
 
-        if ((playbackState == PlaybackStateCompat.STATE_PAUSED) && !radioHasChanged &&
-                (exoPlayer != null)) {
+        if ((playbackState == STATE_PAUSED) && !radioHasChanged && (exoPlayer != null)) {
             configureExoPlayerState()
         } else {
-            playbackState = PlaybackStateCompat.STATE_STOPPED
+            playbackState = STATE_STOPPED
 
             release(false)
 
             initializeExoPlayer()
 
-            playbackState = PlaybackStateCompat.STATE_BUFFERING
+            playbackState = STATE_BUFFERING
 
             prepareExoPlayer(item.description.mediaUri)
 
@@ -101,7 +100,7 @@ class LocalPlayback constructor(val context: Context,
     }
 
     override fun pause() {
-        if (playbackState == PlaybackStateCompat.STATE_PLAYING) {
+        if (playbackState == STATE_PLAYING) {
             if (exoPlayer?.playWhenReady == true) {
                 exoPlayer!!.playWhenReady = false
             }
@@ -109,7 +108,7 @@ class LocalPlayback constructor(val context: Context,
             release(false)
         }
 
-        playbackState = PlaybackStateCompat.STATE_PAUSED
+        playbackState = STATE_PAUSED
 
         callback?.onPlaybackStateChanged(playbackState)
 
@@ -117,7 +116,7 @@ class LocalPlayback constructor(val context: Context,
     }
 
     override fun stop(notify: Boolean) {
-        playbackState = PlaybackStateCompat.STATE_STOPPED
+        playbackState = STATE_STOPPED
 
         if (notify) {
             callback?.onPlaybackStateChanged(playbackState)
@@ -139,7 +138,7 @@ class LocalPlayback constructor(val context: Context,
             val canDuck = focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK
             audioFocus = if (canDuck) AudioFocus.FOCUS_CAN_DUCK else AudioFocus.NO_FOCUS_NO_DUCK
 
-            if ((playbackState == PlaybackStateCompat.STATE_PLAYING) && !canDuck) {
+            if ((playbackState == STATE_PLAYING) && !canDuck) {
                 playOnFocusGain = true
             }
         }
@@ -148,9 +147,8 @@ class LocalPlayback constructor(val context: Context,
     }
 
     override fun onPlayerStateChanged(playWhenReady: Boolean, playbackState: Int) {
-        if (playWhenReady && (playbackState == ExoPlayer.STATE_READY) &&
-                (this.playbackState == PlaybackStateCompat.STATE_BUFFERING)) {
-            this.playbackState = PlaybackStateCompat.STATE_PLAYING
+        if (playWhenReady && (playbackState == ExoPlayer.STATE_READY) && (this.playbackState == STATE_BUFFERING)) {
+            this.playbackState = STATE_PLAYING
 
             configureExoPlayerState()
         }
@@ -158,12 +156,12 @@ class LocalPlayback constructor(val context: Context,
 
     override fun onPlayerError(error: ExoPlaybackException) {
         DebugUtils.executeInDebugMode {
-            Timber.e(TAG, "ExoPlayer error", error)
+            Timber.e("ExoPlayer error", error)
         }
 
         stop(false)
 
-        playbackState = PlaybackStateCompat.STATE_ERROR
+        playbackState = STATE_ERROR
 
         callback?.onError(context.getString(R.string.error_occurred))
     }
@@ -211,7 +209,7 @@ class LocalPlayback constructor(val context: Context,
 
     private fun configureExoPlayerState() {
         if (audioFocus == AudioFocus.NO_FOCUS_NO_DUCK) {
-            if (playbackState == PlaybackStateCompat.STATE_PLAYING) {
+            if (playbackState == STATE_PLAYING) {
                 pause()
             }
         } else {
@@ -223,7 +221,7 @@ class LocalPlayback constructor(val context: Context,
             if (playOnFocusGain) {
                 if (exoPlayer?.playWhenReady == false) {
                     exoPlayer!!.playWhenReady = true
-                    playbackState = PlaybackStateCompat.STATE_PLAYING
+                    playbackState = STATE_PLAYING
                 }
 
                 playOnFocusGain = false
