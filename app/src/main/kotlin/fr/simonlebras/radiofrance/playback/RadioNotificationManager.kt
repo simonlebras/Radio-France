@@ -38,7 +38,7 @@ class RadioNotificationManager @Inject constructor(
     private companion object {
         const val NOTIFICATION_ID = 1
 
-        const val REQUEST_CODE = 1
+        const val REQUEST_CODE = 100
 
         const val ACTION_PLAY = "${BuildConfig.APPLICATION_ID}.play"
         const val ACTION_PAUSE = "${BuildConfig.APPLICATION_ID}.pause"
@@ -199,7 +199,7 @@ class RadioNotificationManager @Inject constructor(
     private fun createContentIntent(): PendingIntent {
         val contentIntent = Intent(service, RadioBrowserActivity::class.java)
         contentIntent.flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
-        return PendingIntent.getActivity(service, RadioBrowserActivity.REQUEST_CODE, contentIntent, PendingIntent.FLAG_CANCEL_CURRENT)
+        return PendingIntent.getActivity(service, RadioBrowserActivity.REQUEST_CODE_NOTIFICATION, contentIntent, PendingIntent.FLAG_CANCEL_CURRENT)
     }
 
     private fun createNotification(): Notification? {

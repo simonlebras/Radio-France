@@ -10,22 +10,29 @@ import android.support.v7.widget.RecyclerView.NO_POSITION
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageButton
+import android.widget.ImageView
+import android.widget.TextView
+import butterknife.BindView
+import butterknife.ButterKnife
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import fr.simonlebras.radiofrance.R
-import fr.simonlebras.radiofrance.di.scopes.FragmentScope
 import fr.simonlebras.radiofrance.models.Radio
-import kotlinx.android.synthetic.main.list_item_radio.view.*
-import javax.inject.Inject
+import fr.simonlebras.radiofrance.ui.preferences.PreferencesFragment.Companion.PREFERENCE_VALUE_LIST_TYPE_GRID
 
-@FragmentScope
-class RadioListAdapter @Inject constructor(private val fragment: RadioListFragment) : RecyclerView.Adapter<RadioListAdapter.ViewHolder>() {
+class RadioListAdapter constructor(
+        private val fragment: RadioListFragment,
+        private val listType: String
+) : RecyclerView.Adapter<RadioListAdapter.ViewHolder>() {
     var radios: List<Radio> = emptyList()
 
     private val inflater = LayoutInflater.from(fragment.context)
 
+    private val itemLayoutId: Int = if (listType == PREFERENCE_VALUE_LIST_TYPE_GRID) R.layout.grid_item_radio else R.layout.list_item_radio
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        val viewHolder = ViewHolder(inflater.inflate(R.layout.list_item_radio, parent, false))
+        val viewHolder = ViewHolder(inflater.inflate(itemLayoutId, parent, false))
 
         viewHolder.itemView.setOnClickListener {
             val position = viewHolder.adapterPosition
@@ -34,7 +41,7 @@ class RadioListAdapter @Inject constructor(private val fragment: RadioListFragme
             }
         }
 
-        viewHolder.itemView.button_radio_links.setOnClickListener {
+        viewHolder.buttonRadioLinks.setOnClickListener {
             val position = viewHolder.adapterPosition
             if (position == NO_POSITION) {
                 return@setOnClickListener
@@ -94,7 +101,8 @@ class RadioListAdapter @Inject constructor(private val fragment: RadioListFragme
                 } else if (key == RadioListDiffCallback.BUNDLE_DIFF_DESCRIPTION) {
                     holder.bindRadioDescription(description)
                 } else if (key == RadioListDiffCallback.BUNDLE_DIFF_LOGO) {
-                    holder.bindRadioLogo(smallLogo)
+                    val logoUrl = if (listType == PREFERENCE_VALUE_LIST_TYPE_GRID) mediumLogo else smallLogo
+                    holder.bindRadioLogo(logoUrl)
                 }
             }
         }
@@ -103,18 +111,29 @@ class RadioListAdapter @Inject constructor(private val fragment: RadioListFragme
     override fun getItemCount() = radios.size
 
     inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        @BindView(R.id.text_radio_title) lateinit var textRadioTitle: TextView
+        @BindView(R.id.text_radio_description) lateinit var textRadioDescription: TextView
+        @BindView(R.id.image_radio_logo) lateinit var imageRadioLogo: ImageView
+        @BindView(R.id.button_radio_links) lateinit var buttonRadioLinks: ImageButton
+
+        init {
+            ButterKnife.bind(this, view)
+        }
+
         fun bindRadio(radio: Radio) {
             bindRadioTitle(radio.name)
             bindRadioDescription(radio.description)
-            bindRadioLogo(radio.smallLogo)
+
+            val logoUrl = if (listType == PREFERENCE_VALUE_LIST_TYPE_GRID) radio.mediumLogo else radio.smallLogo
+            bindRadioLogo(logoUrl)
         }
 
         fun bindRadioTitle(title: String) {
-            itemView.text_radio_title.text = title
+            textRadioTitle.text = title
         }
 
         fun bindRadioDescription(description: String) {
-            itemView.text_radio_description.text = description
+            textRadioDescription.text = description
         }
 
         fun bindRadioLogo(logoUrl: String) {
@@ -125,7 +144,7 @@ class RadioListAdapter @Inject constructor(private val fragment: RadioListFragme
                     .error(ContextCompat.getDrawable(fragment.context, R.drawable.ic_radio_blue_40dp))
                     .diskCacheStrategy(DiskCacheStrategy.ALL)
                     .load(logoUrl)
-                    .into(itemView.image_radio_logo)
+                    .into(imageRadioLogo)
         }
     }
 }

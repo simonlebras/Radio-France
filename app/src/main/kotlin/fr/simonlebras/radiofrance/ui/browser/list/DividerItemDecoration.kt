@@ -25,9 +25,8 @@ class DividerItemDecoration(color: Int, width: Float) : RecyclerView.ItemDecorat
     override fun onDraw(c: Canvas, parent: RecyclerView, state: RecyclerView.State) {
         for (i in 0..parent.childCount - 1) {
             val view = parent.getChildAt(i)
-            val params = view.layoutParams as RecyclerView.LayoutParams
 
-            val position = params.viewAdapterPosition
+            val position = (view.layoutParams as RecyclerView.LayoutParams).viewAdapterPosition
             if (position < state.itemCount) {
                 val positionY = view.bottom + paint.strokeWidth / 2 + view.translationY
                 paint.alpha = (view.alpha * alpha).toInt()

@@ -32,6 +32,11 @@
 
         </activity>
 
+        <activity
+            android:name=".ui.preferences.PreferencesActivity"
+            android:label="@string/label_preferences"
+            android:parentActivityName=".ui.browser.RadioBrowserActivity" />
+
         <service
             android:name=".playback.RadioPlaybackService"
             android:exported="true">

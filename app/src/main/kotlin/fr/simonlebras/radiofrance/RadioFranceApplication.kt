@@ -6,6 +6,7 @@ import android.app.Application
 import android.app.Service
 import android.os.Build.VERSION_CODES.M
 import android.os.StrictMode
+import android.support.v7.preference.PreferenceManager
 import com.facebook.stetho.Stetho
 import com.facebook.stetho.timber.StethoTree
 import com.squareup.leakcanary.LeakCanary
@@ -49,6 +50,8 @@ class RadioFranceApplication : Application(),
         }
 
         component.injectMembers(this)
+
+        PreferenceManager.setDefaultValues(this, R.xml.preferences, false)
     }
 
     override fun activityInjector() = activityInjector

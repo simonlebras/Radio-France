@@ -2,6 +2,8 @@ package fr.simonlebras.radiofrance.ui.browser
 
 import android.app.SearchManager
 import android.content.Context
+import android.content.Intent
+import android.content.SharedPreferences
 import android.os.Bundle
 import android.os.Handler
 import android.support.v4.app.Fragment
@@ -12,9 +14,13 @@ import android.support.v4.media.session.PlaybackStateCompat.*
 import android.support.v4.view.MenuItemCompat
 import android.support.v7.app.AppCompatDelegate
 import android.support.v7.widget.SearchView
+import android.support.v7.widget.Toolbar
 import android.view.Menu
 import android.view.MenuItem
+import android.view.View
 import android.view.View.VISIBLE
+import butterknife.BindView
+import butterknife.ButterKnife
 import com.google.android.gms.cast.framework.*
 import com.jakewharton.rxbinding2.support.v7.widget.queryTextChanges
 import dagger.Lazy
@@ -24,9 +30,10 @@ import fr.simonlebras.radiofrance.R
 import fr.simonlebras.radiofrance.ui.base.BaseActivity
 import fr.simonlebras.radiofrance.ui.browser.list.RadioListFragment
 import fr.simonlebras.radiofrance.ui.browser.player.MiniPlayerFragment
+import fr.simonlebras.radiofrance.ui.preferences.PreferencesActivity
+import fr.simonlebras.radiofrance.ui.preferences.PreferencesFragment.Companion.PREFERENCE_KEY_LIST_TYPE
+import fr.simonlebras.radiofrance.ui.preferences.PreferencesFragment.Companion.PREFERENCE_VALUE_LIST_TYPE_GRID
 import io.reactivex.android.schedulers.AndroidSchedulers
-import kotlinx.android.synthetic.main.activity_radio_browser.*
-import kotlinx.android.synthetic.main.partial_toolbar.*
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
@@ -34,7 +41,12 @@ class RadioBrowserActivity : BaseActivity<RadioBrowserPresenter>(),
         HasDispatchingSupportFragmentInjector,
         RadioBrowserPresenter.View {
     companion object {
-        const val REQUEST_CODE = 1
+        const val REQUEST_CODE_NOTIFICATION = 100
+        const val REQUEST_CODE_SESSION = 101
+
+        const val REQUEST_CODE_PREFERENCES = 100
+
+        const val BUNDLE_QUERY = "BUNDLE_QUERY"
 
         init {
             AppCompatDelegate.setCompatVectorFromResourcesEnabled(true)
@@ -43,6 +55,10 @@ class RadioBrowserActivity : BaseActivity<RadioBrowserPresenter>(),
 
     @Inject lateinit var fragmentInjector: DispatchingAndroidInjector<Fragment>
     @Inject lateinit var presenterProvider: Lazy<RadioBrowserPresenter>
+    @Inject lateinit var sharedPreferences: SharedPreferences
+
+    @BindView(R.id.toolbar) lateinit var toolbar: Toolbar
+    @BindView(R.id.container_mini_player) lateinit var containerMiniPlayer: View
 
     private lateinit var radioListFragment: RadioListFragment
     private lateinit var miniPlayerFragment: MiniPlayerFragment
@@ -69,15 +85,30 @@ class RadioBrowserActivity : BaseActivity<RadioBrowserPresenter>(),
         introductoryOverlay!!.show()
     }
 
+    private var query: String? = null
+
+    private lateinit var listType: String
+    private var listTypeChanged = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         setTheme(R.style.AppTheme)
 
         super.onCreate(savedInstanceState)
 
         setContentView(R.layout.activity_radio_browser)
+        ButterKnife.bind(this)
         setSupportActionBar(toolbar)
 
-        radioListFragment = supportFragmentManager.findFragmentById(R.id.fragment_radio_browser) as RadioListFragment
+        listType = sharedPreferences.getString(PREFERENCE_KEY_LIST_TYPE, PREFERENCE_VALUE_LIST_TYPE_GRID)
+
+        if (savedInstanceState == null) {
+            replaceRadioListFragment(listType, false)
+        } else {
+            radioListFragment = supportFragmentManager.findFragmentByTag(RadioListFragment.TAG) as RadioListFragment
+
+            query = savedInstanceState.getString(BUNDLE_QUERY, null)
+        }
+
         miniPlayerFragment = supportFragmentManager.findFragmentById(R.id.fragment_mini_player) as MiniPlayerFragment
 
         castContext = CastContext.getSharedInstance(this)
@@ -90,6 +121,12 @@ class RadioBrowserActivity : BaseActivity<RadioBrowserPresenter>(),
         super.onPostResume()
 
         changeMiniPlayerVisibility()
+
+        if (listTypeChanged) {
+            listTypeChanged = false
+
+            replaceRadioListFragment(listType, true)
+        }
     }
 
     override fun onResume() {
@@ -106,6 +143,12 @@ class RadioBrowserActivity : BaseActivity<RadioBrowserPresenter>(),
         super.onPause()
     }
 
+    override fun onSaveInstanceState(outState: Bundle) {
+        outState.putString(BUNDLE_QUERY, query)
+
+        super.onSaveInstanceState(outState)
+    }
+
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         super.onCreateOptionsMenu(menu)
 
@@ -113,9 +156,16 @@ class RadioBrowserActivity : BaseActivity<RadioBrowserPresenter>(),
 
         mediaRouteMenuItem = CastButtonFactory.setUpMediaRouteButton(applicationContext, menu, R.id.action_media_route)
 
-        val searchView = MenuItemCompat.getActionView(menu.findItem(R.id.action_search)) as SearchView
+        val searchItem = menu.findItem(R.id.action_search)
+        val searchView = MenuItemCompat.getActionView(searchItem) as SearchView
         val searchManager = getSystemService(Context.SEARCH_SERVICE) as SearchManager
         searchView.setSearchableInfo(searchManager.getSearchableInfo(componentName))
+
+        if (!query.isNullOrBlank()) {
+            searchItem.expandActionView()
+            searchView.setQuery(query, false)
+            searchView.clearFocus()
+        }
 
         compositeDisposable.add(searchView.queryTextChanges()
                 .skipInitialValue()
@@ -126,10 +176,40 @@ class RadioBrowserActivity : BaseActivity<RadioBrowserPresenter>(),
                 .distinctUntilChanged()
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe({
+                    query = it
+
                     radioListFragment.searchRadios(it)
                 }))
 
         return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        when (item.itemId) {
+            R.id.action_preferences -> {
+                val intent = Intent(this, PreferencesActivity::class.java)
+                startActivityForResult(intent, REQUEST_CODE_PREFERENCES)
+
+                return true
+            }
+            else -> return super.onOptionsItemSelected(item)
+        }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        if (requestCode == REQUEST_CODE_PREFERENCES) {
+            val newListType = sharedPreferences.getString(PREFERENCE_KEY_LIST_TYPE, PREFERENCE_VALUE_LIST_TYPE_GRID)
+
+            if (newListType != listType) {
+                listType = newListType
+
+                listTypeChanged = true
+            }
+
+            return
+        }
+
+        super.onActivityResult(requestCode, resultCode, data)
     }
 
     override fun restorePresenter() {
@@ -180,7 +260,7 @@ class RadioBrowserActivity : BaseActivity<RadioBrowserPresenter>(),
     }
 
     private fun showMiniPlayer() {
-        container_mini_controller.visibility = VISIBLE
+        containerMiniPlayer.visibility = VISIBLE
 
         supportFragmentManager.beginTransaction()
                 .setCustomAnimations(R.anim.slide_in_bottom, R.anim.slide_out_bottom, R.anim.slide_in_top, R.anim.slide_out_top)
@@ -203,6 +283,23 @@ class RadioBrowserActivity : BaseActivity<RadioBrowserPresenter>(),
 
         if (mediaRouteMenuItem?.isVisible == true) {
             handler.post(handlerCallbacks)
+        }
+    }
+
+    private fun replaceRadioListFragment(listType: String, animate: Boolean) {
+        radioListFragment = RadioListFragment.newInstance(listType)
+
+        val transaction = supportFragmentManager.beginTransaction()
+
+        if (animate) {
+            transaction.setCustomAnimations(android.R.anim.fade_in, android.R.anim.fade_out)
+        }
+
+        transaction.replace(R.id.container_radio_list, radioListFragment, RadioListFragment.TAG)
+                .commitNow()
+
+        if (!query.isNullOrBlank()) {
+            radioListFragment.searchRadios(query!!)
         }
     }
 }

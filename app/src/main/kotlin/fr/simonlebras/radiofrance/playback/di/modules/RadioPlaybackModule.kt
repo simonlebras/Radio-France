@@ -53,7 +53,7 @@ class RadioPlaybackModule {
         mediaSession.setMediaButtonReceiver(pendingIntent)
 
         val intent = Intent(context, RadioBrowserActivity::class.java)
-        pendingIntent = PendingIntent.getActivity(context, RadioBrowserActivity.REQUEST_CODE, intent, PendingIntent.FLAG_UPDATE_CURRENT)
+        pendingIntent = PendingIntent.getActivity(context, RadioBrowserActivity.REQUEST_CODE_SESSION, intent, PendingIntent.FLAG_UPDATE_CURRENT)
         mediaSession.setSessionActivity(pendingIntent)
 
         return mediaSession

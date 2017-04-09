@@ -5,6 +5,7 @@
     <string name="cast_application_id">CC1AD845</string>
 
     <string name="label_radios">Radios</string>
+    <string name="label_preferences">Paramètres</string>
 
     <string name="action_search">Rechercher</string>
     <string name="action_retry">Réessayer</string>
@@ -15,6 +16,7 @@
     <string name="action_next">Suivant</string>
     <string name="action_stop_casting">Arrêter de caster</string>
     <string name="action_media_route">Lire sur…</string>
+    <string name="action_preferences">Paramètres</string>
 
     <string name="error_service_unavailable">Service indisponible</string>
     <string name="error_action_unavailable">Action indisponible</string>
@@ -38,5 +40,9 @@
     <string name="touch_to_cast">Touchez pour vous connecter à un appareil Google Cast</string>
 
     <string name="casting_to_device">Cast sur %1$s</string>
+
+    <string name="preference_category_general">Général</string>
+    <string name="preference_list_types_title">Affichage des radios</string>
+    <string name="preference_list_types_summary">Choisir le type de liste utilisé pour afficher les radios</string>
 
 </resources>

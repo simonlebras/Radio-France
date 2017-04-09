@@ -3,4 +3,6 @@
 
     <dimen name="list_divider_width">1dp</dimen>
 
+    <dimen name="grid_column_space">4dp</dimen>
+
 </resources>

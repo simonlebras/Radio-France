@@ -4,7 +4,10 @@ import android.os.Bundle
 import android.support.v7.util.DiffUtil
 import fr.simonlebras.radiofrance.models.Radio
 
-class RadioListDiffCallback(private val oldList: List<Radio>,  val newList: List<Radio>) : DiffUtil.Callback() {
+class RadioListDiffCallback(
+        private val oldList: List<Radio>,
+        private val newList: List<Radio>
+) : DiffUtil.Callback() {
     companion object {
         const val BUNDLE_DIFF_NAME = "BUNDLE_DIFF_NAME"
         const val BUNDLE_DIFF_DESCRIPTION = "BUNDLE_DIFF_DESCRIPTION"
