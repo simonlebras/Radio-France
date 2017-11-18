@@ -153,26 +153,24 @@ class PlaybackManager @Inject constructor(
             }
             else -> {
                 DebugUtils.executeInDebugMode {
-                    Timber.d("Default called. Old state is ", oldState)
+                    Timber.d("Default called. Old state is %d", oldState)
                 }
             }
         }
     }
 
     private fun getAvailableActions(): Long {
-        var actions = ACTION_PLAY_PAUSE or
+        val actions = ACTION_PLAY_PAUSE or
                 ACTION_PLAY_FROM_MEDIA_ID or
                 ACTION_PLAY_FROM_SEARCH or
                 ACTION_SKIP_TO_PREVIOUS or
                 ACTION_SKIP_TO_NEXT
 
-        if (playback.isPlaying) {
-            actions = actions or ACTION_PAUSE
+        return if (playback.isPlaying) {
+            actions or ACTION_PAUSE
         } else {
-            actions = actions or ACTION_PLAY
+            actions or ACTION_PLAY
         }
-
-        return actions
     }
 
     interface Callback {

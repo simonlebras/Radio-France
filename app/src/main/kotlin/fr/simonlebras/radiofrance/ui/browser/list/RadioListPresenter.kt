@@ -50,7 +50,7 @@ class RadioListPresenter @Inject constructor(private val radioManager: RadioMana
                     val radios = it.second
 
                     if (radios.isEmpty()) {
-                        if (query.isNullOrBlank()) {
+                        if (query.isBlank()) {
                             view?.showRefreshError()
                         } else {
                             view?.showSearchError()

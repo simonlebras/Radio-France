@@ -10,18 +10,11 @@ import android.support.v7.util.DiffUtil
 import android.support.v7.widget.DefaultItemAnimator
 import android.support.v7.widget.GridLayoutManager
 import android.support.v7.widget.LinearLayoutManager
-import android.support.v7.widget.RecyclerView
 import android.view.LayoutInflater
 import android.view.View
 import android.view.View.GONE
 import android.view.View.VISIBLE
 import android.view.ViewGroup
-import android.widget.Button
-import android.widget.ProgressBar
-import android.widget.TextView
-import butterknife.BindView
-import butterknife.ButterKnife
-import butterknife.Unbinder
 import dagger.Lazy
 import fr.simonlebras.radiofrance.R
 import fr.simonlebras.radiofrance.models.Radio
@@ -29,6 +22,8 @@ import fr.simonlebras.radiofrance.ui.base.BaseActivity
 import fr.simonlebras.radiofrance.ui.base.BaseFragment
 import fr.simonlebras.radiofrance.ui.preferences.PreferencesFragment.Companion.PREFERENCE_VALUE_LIST_TYPE_GRID
 import fr.simonlebras.radiofrance.ui.preferences.PreferencesFragment.Companion.PREFERENCE_VALUE_LIST_TYPE_LIST
+import kotlinx.android.synthetic.main.fragment_radio_list.*
+import kotlinx.android.synthetic.main.fragment_radio_list.view.*
 import javax.inject.Inject
 
 class RadioListFragment : BaseFragment<RadioListPresenter>(), RadioListPresenter.View {
@@ -54,14 +49,6 @@ class RadioListFragment : BaseFragment<RadioListPresenter>(), RadioListPresenter
 
     @Inject lateinit var presenterProvider: Lazy<RadioListPresenter>
 
-    @BindView(R.id.progress_bar) lateinit var progressBar: ProgressBar
-    @BindView(R.id.recycler_view) lateinit var recyclerView: RecyclerView
-    @BindView(R.id.empty_view) lateinit var emptyView: View
-    @BindView(R.id.button_list_refresh) lateinit var buttonListRefresh: Button
-    @BindView(R.id.text_no_result) lateinit var textNoResult: TextView
-
-    private lateinit var unbinder: Unbinder
-
     private lateinit var adapter: RadioListAdapter
     private lateinit var listType: String
 
@@ -70,39 +57,37 @@ class RadioListFragment : BaseFragment<RadioListPresenter>(), RadioListPresenter
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        listType = arguments?.getString(ARGUMENT_LIST_TYPE) as? String ?: PREFERENCE_VALUE_LIST_TYPE_GRID
+        listType = arguments?.getString(ARGUMENT_LIST_TYPE) ?: PREFERENCE_VALUE_LIST_TYPE_GRID
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         val view = inflater.inflate(R.layout.fragment_radio_list, container, false)
 
-        unbinder = ButterKnife.bind(this, view)
-
         adapter = RadioListAdapter(this, listType)
 
-        recyclerView.adapter = adapter
-        recyclerView.itemAnimator = DefaultItemAnimator()
-        recyclerView.setHasFixedSize(true)
+        view.recycler_view.adapter = adapter
+        view.recycler_view.itemAnimator = DefaultItemAnimator()
+        view.recycler_view.setHasFixedSize(true)
 
         val resources = resources
         if (listType == PREFERENCE_VALUE_LIST_TYPE_GRID) {
-            recyclerView.setPadding(0, 0, 0, 0)
+            view.recycler_view.setPadding(0, 0, 0, 0)
 
             val columnCount = resources.getInteger(R.integer.grid_column_count)
             val columnSpace = resources.getDimensionPixelSize(R.dimen.grid_column_space)
 
-            recyclerView.layoutManager = GridLayoutManager(context, columnCount)
+            view.recycler_view.layoutManager = GridLayoutManager(context, columnCount)
 
-            recyclerView.addItemDecoration(SpaceItemDecoration(columnSpace))
+            view.recycler_view.addItemDecoration(SpaceItemDecoration(columnSpace))
         } else {
-            recyclerView.layoutManager = LinearLayoutManager(context)
+            view.recycler_view.layoutManager = LinearLayoutManager(context)
 
             val width = resources.getDimensionPixelSize(R.dimen.list_divider_width).toFloat()
-            val decoration = DividerItemDecoration(ContextCompat.getColor(context, R.color.colorDivider), width)
-            recyclerView.addItemDecoration(decoration)
+            val decoration = DividerItemDecoration(ContextCompat.getColor(context!!, R.color.colorDivider), width)
+            view.recycler_view.addItemDecoration(decoration)
         }
 
-        buttonListRefresh.setOnClickListener {
+        view.button_list_refresh.setOnClickListener {
             snackBar?.dismiss()
 
             showProgressBar()
@@ -113,17 +98,11 @@ class RadioListFragment : BaseFragment<RadioListPresenter>(), RadioListPresenter
         return view
     }
 
-    override fun onViewCreated(view: View?, savedInstanceState: Bundle?) {
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
         presenter.onAttachView(this)
         presenter.connect()
-    }
-
-    override fun onDestroyView() {
-        unbinder.unbind()
-
-        super.onDestroyView()
     }
 
     override fun restorePresenter() {
@@ -147,7 +126,7 @@ class RadioListFragment : BaseFragment<RadioListPresenter>(), RadioListPresenter
         adapter.radios = radios
         diffResult.dispatchUpdatesTo(adapter)
 
-        recyclerView.scrollToPosition(0)
+        recycler_view.scrollToPosition(0)
     }
 
     override fun showRefreshError() {
@@ -179,33 +158,33 @@ class RadioListFragment : BaseFragment<RadioListPresenter>(), RadioListPresenter
     }
 
     private fun showProgressBar() {
-        progressBar.visibility = VISIBLE
-        recyclerView.visibility = GONE
-        emptyView.visibility = GONE
-        textNoResult.visibility = GONE
+        progress_bar.visibility = VISIBLE
+        recycler_view.visibility = GONE
+        empty_view.visibility = GONE
+        text_no_result.visibility = GONE
     }
 
     private fun showRecyclerView() {
-        if (recyclerView.visibility != VISIBLE) {
-            progressBar.visibility = GONE
-            recyclerView.visibility = VISIBLE
-            emptyView.visibility = GONE
-            textNoResult.visibility = GONE
+        if (recycler_view.visibility != VISIBLE) {
+            progress_bar.visibility = GONE
+            recycler_view.visibility = VISIBLE
+            empty_view.visibility = GONE
+            text_no_result.visibility = GONE
         }
     }
 
     private fun showEmptyView() {
-        progressBar.visibility = GONE
-        recyclerView.visibility = GONE
-        emptyView.visibility = VISIBLE
-        textNoResult.visibility = GONE
+        progress_bar.visibility = GONE
+        recycler_view.visibility = GONE
+        empty_view.visibility = VISIBLE
+        text_no_result.visibility = GONE
     }
 
     private fun showNoResultView() {
-        progressBar.visibility = GONE
-        recyclerView.visibility = GONE
-        emptyView.visibility = GONE
-        textNoResult.visibility = VISIBLE
+        progress_bar.visibility = GONE
+        recycler_view.visibility = GONE
+        empty_view.visibility = GONE
+        text_no_result.visibility = VISIBLE
     }
 
     private fun showRetryAction() {

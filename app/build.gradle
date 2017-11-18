@@ -1,5 +1,7 @@
 apply plugin: 'com.android.application'
+apply plugin: 'kotlin-kapt'
 apply plugin: 'kotlin-android'
+apply plugin: 'kotlin-android-extensions'
 apply from: "$project.rootDir/tools/git-version.gradle"
 
 def keystoreProperties = new Properties()
@@ -11,6 +13,8 @@ android {
 
     defaultConfig {
         applicationId "fr.simonlebras.radiofrance"
+        versionCode gitVersionCode
+        versionName gitVersionName
         minSdkVersion rootProject.minSdkVersion
         targetSdkVersion rootProject.targetSdkVersion
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
@@ -39,16 +43,16 @@ android {
         }
     }
 
+    flavorDimensions 'environment'
     productFlavors {
         prod {
-            versionCode gitVersionCode
-            versionName gitVersionName
+            dimension 'environment'
         }
 
         dev {
-            minSdkVersion 21
+            dimension 'environment'
+
             versionCode gitVersionCodeTime
-            versionName gitVersionName
         }
     }
 
@@ -57,7 +61,7 @@ android {
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-            productFlavors.prod.signingConfig signingConfigs.release
+            signingConfig signingConfigs.release
         }
     }
 
@@ -77,65 +81,57 @@ android {
 }
 
 dependencies {
-    compile fileTree(dir: 'libs', include: ['*.jar'])
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
 
-    androidTestCompile("com.android.support.test.espresso:espresso-core:$rootProject.espressoVersion", {
-        exclude group: 'com.android.support', module: 'support-annotations'
-    })
-    androidTestCompile "com.google.code.findbugs:jsr305:$rootProject.jsr305Version"
-    testCompile "junit:junit:$rootProject.jUnitVersion"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
 
-    compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
+    implementation "com.android.support:appcompat-v7:$rootProject.supportLibraryVersion"
+    implementation "com.android.support:recyclerview-v7:$rootProject.supportLibraryVersion"
+    implementation "com.android.support:cardview-v7:$rootProject.supportLibraryVersion"
+    implementation "com.android.support:design:$rootProject.supportLibraryVersion"
+    implementation "com.android.support:mediarouter-v7:$rootProject.supportLibraryVersion"
+    implementation "com.android.support:preference-v7:$rootProject.supportLibraryVersion"
+    implementation "com.android.support:preference-v14:$rootProject.supportLibraryVersion"
+    implementation "com.android.support.constraint:constraint-layout:$rootProject.constraintLayoutVersion"
 
-    compile "com.android.support:appcompat-v7:$rootProject.supportLibraryVersion"
-    compile "com.android.support:recyclerview-v7:$rootProject.supportLibraryVersion"
-    compile "com.android.support:cardview-v7:$rootProject.supportLibraryVersion"
-    compile "com.android.support:design:$rootProject.supportLibraryVersion"
-    compile "com.android.support:mediarouter-v7:$rootProject.supportLibraryVersion"
-    compile "com.android.support:preference-v7:$rootProject.supportLibraryVersion"
-    compile "com.android.support:preference-v14:$rootProject.supportLibraryVersion"
-    compile "com.android.support.constraint:constraint-layout:$rootProject.constraintLayoutVersion"
+    implementation "com.google.android.gms:play-services-cast-framework:$rootProject.playServicesVersion"
+    releaseImplementation "com.google.firebase:firebase-crash:$rootProject.playServicesVersion"
 
-    compile "com.google.android.gms:play-services-cast-framework:$rootProject.playServicesVersion"
-    releaseCompile "com.google.firebase:firebase-crash:$rootProject.playServicesVersion"
-
-    compile "com.google.dagger:dagger-android-support:$rootProject.daggerVersion"
+    implementation "com.google.dagger:dagger:$rootProject.daggerVersion"
     kapt "com.google.dagger:dagger-compiler:$rootProject.daggerVersion"
+    implementation "com.google.dagger:dagger-android-support:$rootProject.daggerVersion"
+    kapt "com.google.dagger:dagger-android-processor:$rootProject.daggerVersion"
 
-    compile "com.jakewharton:butterknife:$rootProject.butterknifeVersion"
-    kapt "com.jakewharton:butterknife-compiler:$rootProject.butterknifeVersion"
+    implementation "io.reactivex.rxjava2:rxjava:$rootProject.rxJavaVersion"
+    implementation "io.reactivex.rxjava2:rxandroid:$rootProject.rxAndroidVersion"
+    implementation "com.jakewharton.rxbinding2:rxbinding:$rootProject.rxBindingVersion"
+    implementation "com.jakewharton.rxbinding2:rxbinding-appcompat-v7:$rootProject.rxBindingVersion"
+    implementation "com.jakewharton.rxbinding2:rxbinding-appcompat-v7-kotlin:$rootProject.rxBindingVersion"
 
-    compile "io.reactivex.rxjava2:rxjava:$rootProject.rxJavaVersion"
-    compile "io.reactivex.rxjava2:rxandroid:$rootProject.rxAndroidVersion"
-    compile "com.jakewharton.rxbinding2:rxbinding:$rootProject.rxBindingVersion"
-    compile "com.jakewharton.rxbinding2:rxbinding-appcompat-v7:$rootProject.rxBindingVersion"
-    compile "com.jakewharton.rxbinding2:rxbinding-appcompat-v7-kotlin:$rootProject.rxBindingVersion"
+    implementation "com.squareup.moshi:moshi:$rootProject.moshiVersion"
+    implementation "com.squareup.moshi:moshi-kotlin:$rootProject.moshiVersion"
 
-    compile "com.squareup.moshi:moshi:$rootProject.moshiVersion"
+    implementation "com.squareup.okhttp3:okhttp:$rootProject.okHttpVersion"
+    implementation "com.squareup.okhttp3:logging-interceptor:$rootProject.okHttpVersion"
 
-    compile "com.squareup.okhttp3:okhttp:$rootProject.okHttpVersion"
-    compile "com.squareup.okhttp3:logging-interceptor:$rootProject.okHttpVersion"
+    implementation "com.squareup.retrofit2:retrofit:$rootProject.retrofitVersion"
+    implementation "com.squareup.retrofit2:adapter-rxjava2:$rootProject.retrofitVersion"
+    implementation "com.squareup.retrofit2:converter-moshi:$rootProject.retrofitVersion"
 
-    compile "com.squareup.retrofit2:retrofit:$rootProject.retrofitVersion"
-    compile "com.squareup.retrofit2:adapter-rxjava2:$rootProject.retrofitVersion"
-    compile "com.squareup.retrofit2:converter-moshi:$rootProject.retrofitVersion"
-
-    compile "com.github.bumptech.glide:glide:$rootProject.glideVersion"
-    compile("com.github.bumptech.glide:okhttp3-integration:$rootProject.glideOkHttpVersion") {
-        exclude group: 'glide-parent'
+    implementation "com.github.bumptech.glide:glide:$rootProject.glideVersion"
+    kapt "com.github.bumptech.glide:compiler:$rootProject.glideVersion"
+    implementation "com.github.bumptech.glide:okhttp3-integration:$rootProject.glideVersion"
+    implementation("com.github.bumptech.glide:recyclerview-integration:$rootProject.glideVersion") {
+        transitive = false
     }
 
-    compile "com.google.android.exoplayer:exoplayer:$rootProject.exoPlayerVersion"
+    implementation "com.google.android.exoplayer:exoplayer-core:$rootProject.exoPlayerVersion"
 
-    compile "com.jakewharton.timber:timber:$rootProject.timberVersion"
+    implementation "com.jakewharton.timber:timber:$rootProject.timberVersion"
 
-    debugCompile "com.squareup.leakcanary:leakcanary-android:$rootProject.leakCanaryVersion"
-    releaseCompile "com.squareup.leakcanary:leakcanary-android-no-op:$rootProject.leakCanaryVersion"
-    testCompile "com.squareup.leakcanary:leakcanary-android-no-op:$rootProject.leakCanaryVersion"
-
-    compile "com.facebook.stetho:stetho:$rootProject.stethoVersion"
-    compile "com.facebook.stetho:stetho-okhttp3:$rootProject.stethoVersion"
-    compile "com.facebook.stetho:stetho-timber:$rootProject.stethoVersion"
+    debugImplementation "com.squareup.leakcanary:leakcanary-android:$rootProject.leakCanaryVersion"
+    releaseImplementation "com.squareup.leakcanary:leakcanary-android-no-op:$rootProject.leakCanaryVersion"
+    testImplementation "com.squareup.leakcanary:leakcanary-android-no-op:$rootProject.leakCanaryVersion"
 }
 
 apply plugin: 'com.google.gms.google-services'

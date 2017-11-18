@@ -11,21 +11,16 @@ import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import android.support.v4.media.session.PlaybackStateCompat.*
-import android.support.v4.view.MenuItemCompat
 import android.support.v7.app.AppCompatDelegate
 import android.support.v7.widget.SearchView
-import android.support.v7.widget.Toolbar
 import android.view.Menu
 import android.view.MenuItem
-import android.view.View
 import android.view.View.VISIBLE
-import butterknife.BindView
-import butterknife.ButterKnife
 import com.google.android.gms.cast.framework.*
 import com.jakewharton.rxbinding2.support.v7.widget.queryTextChanges
 import dagger.Lazy
 import dagger.android.DispatchingAndroidInjector
-import dagger.android.support.HasDispatchingSupportFragmentInjector
+import dagger.android.support.HasSupportFragmentInjector
 import fr.simonlebras.radiofrance.R
 import fr.simonlebras.radiofrance.ui.base.BaseActivity
 import fr.simonlebras.radiofrance.ui.browser.list.RadioListFragment
@@ -34,11 +29,13 @@ import fr.simonlebras.radiofrance.ui.preferences.PreferencesActivity
 import fr.simonlebras.radiofrance.ui.preferences.PreferencesFragment.Companion.PREFERENCE_KEY_LIST_TYPE
 import fr.simonlebras.radiofrance.ui.preferences.PreferencesFragment.Companion.PREFERENCE_VALUE_LIST_TYPE_GRID
 import io.reactivex.android.schedulers.AndroidSchedulers
+import kotlinx.android.synthetic.main.activity_radio_browser.*
+import kotlinx.android.synthetic.main.partial_toolbar.*
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 class RadioBrowserActivity : BaseActivity<RadioBrowserPresenter>(),
-        HasDispatchingSupportFragmentInjector,
+        HasSupportFragmentInjector,
         RadioBrowserPresenter.View {
     companion object {
         const val REQUEST_CODE_NOTIFICATION = 100
@@ -56,9 +53,6 @@ class RadioBrowserActivity : BaseActivity<RadioBrowserPresenter>(),
     @Inject lateinit var fragmentInjector: DispatchingAndroidInjector<Fragment>
     @Inject lateinit var presenterProvider: Lazy<RadioBrowserPresenter>
     @Inject lateinit var sharedPreferences: SharedPreferences
-
-    @BindView(R.id.toolbar) lateinit var toolbar: Toolbar
-    @BindView(R.id.container_mini_player) lateinit var containerMiniPlayer: View
 
     private lateinit var radioListFragment: RadioListFragment
     private lateinit var miniPlayerFragment: MiniPlayerFragment
@@ -96,7 +90,6 @@ class RadioBrowserActivity : BaseActivity<RadioBrowserPresenter>(),
         super.onCreate(savedInstanceState)
 
         setContentView(R.layout.activity_radio_browser)
-        ButterKnife.bind(this)
         setSupportActionBar(toolbar)
 
         listType = sharedPreferences.getString(PREFERENCE_KEY_LIST_TYPE, PREFERENCE_VALUE_LIST_TYPE_GRID)
@@ -157,7 +150,7 @@ class RadioBrowserActivity : BaseActivity<RadioBrowserPresenter>(),
         mediaRouteMenuItem = CastButtonFactory.setUpMediaRouteButton(applicationContext, menu, R.id.action_media_route)
 
         val searchItem = menu.findItem(R.id.action_search)
-        val searchView = MenuItemCompat.getActionView(searchItem) as SearchView
+        val searchView = searchItem.actionView as SearchView
         val searchManager = getSystemService(Context.SEARCH_SERVICE) as SearchManager
         searchView.setSearchableInfo(searchManager.getSearchableInfo(componentName))
 
@@ -184,16 +177,14 @@ class RadioBrowserActivity : BaseActivity<RadioBrowserPresenter>(),
         return true
     }
 
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        when (item.itemId) {
-            R.id.action_preferences -> {
-                val intent = Intent(this, PreferencesActivity::class.java)
-                startActivityForResult(intent, REQUEST_CODE_PREFERENCES)
+    override fun onOptionsItemSelected(item: MenuItem): Boolean = when (item.itemId) {
+        R.id.action_preferences -> {
+            val intent = Intent(this, PreferencesActivity::class.java)
+            startActivityForResult(intent, REQUEST_CODE_PREFERENCES)
 
-                return true
-            }
-            else -> return super.onOptionsItemSelected(item)
+            true
         }
+        else -> super.onOptionsItemSelected(item)
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -253,14 +244,14 @@ class RadioBrowserActivity : BaseActivity<RadioBrowserPresenter>(),
             return false
         }
 
-        when (mediaController.playbackState.state) {
-            STATE_ERROR, STATE_NONE, STATE_STOPPED -> return false
-            else -> return true
+        return when (mediaController.playbackState.state) {
+            STATE_ERROR, STATE_NONE, STATE_STOPPED -> false
+            else -> true
         }
     }
 
     private fun showMiniPlayer() {
-        containerMiniPlayer.visibility = VISIBLE
+        container_mini_player.visibility = VISIBLE
 
         supportFragmentManager.beginTransaction()
                 .setCustomAnimations(R.anim.slide_in_bottom, R.anim.slide_out_bottom, R.anim.slide_in_top, R.anim.slide_out_top)

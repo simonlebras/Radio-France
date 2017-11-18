@@ -119,9 +119,13 @@ class RadioPlaybackService : MediaBrowserServiceCompat(), PlaybackManager.Callba
         super.onDestroy()
     }
 
-    override fun onGetRoot(clientPackageName: String, clientUid: Int, rootHints: Bundle?): BrowserRoot {
-        return MediaBrowserServiceCompat.BrowserRoot(root, null)
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        super.onTaskRemoved(rootIntent)
+        stopSelf()
     }
+
+    override fun onGetRoot(clientPackageName: String, clientUid: Int, rootHints: Bundle?): BrowserRoot =
+            MediaBrowserServiceCompat.BrowserRoot(root, null)
 
     override fun onLoadChildren(parentId: String, result: Result<List<MediaBrowserCompat.MediaItem>>) {
         result.detach()

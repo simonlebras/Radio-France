@@ -6,7 +6,7 @@ import android.support.v4.media.MediaDescriptionCompat
 import android.support.v4.media.MediaMetadataCompat
 
 object MediaItemMapper {
-    fun transform(metadata: MediaMetadataCompat): MediaBrowserCompat.MediaItem {
+    private fun transform(metadata: MediaMetadataCompat): MediaBrowserCompat.MediaItem {
         val mediaDescription = metadata.description
         val builder = MediaDescriptionCompat.Builder()
                 .setMediaId(mediaDescription.mediaId)

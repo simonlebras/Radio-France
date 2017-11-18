@@ -5,7 +5,7 @@ import fr.simonlebras.radiofrance.models.Radio
 import fr.simonlebras.radiofrance.utils.MediaMetadataUtils
 
 object RadioMapper {
-    fun transform(mediaItem: MediaBrowserCompat.MediaItem): Radio {
+    private fun transform(mediaItem: MediaBrowserCompat.MediaItem): Radio {
         val description = mediaItem.description
         val extras = description.extras!!
 

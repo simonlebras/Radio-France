@@ -5,7 +5,7 @@ import fr.simonlebras.radiofrance.models.Radio
 import fr.simonlebras.radiofrance.utils.MediaMetadataUtils
 
 object MediaMetadataMapper {
-    fun transform(radio: Radio): MediaMetadataCompat {
+    private fun transform(radio: Radio): MediaMetadataCompat {
         return MediaMetadataCompat.Builder()
                 .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID, radio.id)
                 .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_TITLE, radio.name)

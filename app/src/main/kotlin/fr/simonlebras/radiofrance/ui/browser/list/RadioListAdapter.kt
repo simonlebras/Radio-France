@@ -10,16 +10,12 @@ import android.support.v7.widget.RecyclerView.NO_POSITION
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageButton
-import android.widget.ImageView
-import android.widget.TextView
-import butterknife.BindView
-import butterknife.ButterKnife
-import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import fr.simonlebras.radiofrance.R
 import fr.simonlebras.radiofrance.models.Radio
 import fr.simonlebras.radiofrance.ui.preferences.PreferencesFragment.Companion.PREFERENCE_VALUE_LIST_TYPE_GRID
+import fr.simonlebras.radiofrance.utils.GlideApp
+import kotlinx.android.synthetic.main.list_item_radio.view.*
 
 class RadioListAdapter constructor(
         private val fragment: RadioListFragment,
@@ -41,13 +37,13 @@ class RadioListAdapter constructor(
             }
         }
 
-        viewHolder.buttonRadioLinks.setOnClickListener {
+        viewHolder.itemView.button_radio_links.setOnClickListener {
             val position = viewHolder.adapterPosition
             if (position == NO_POSITION) {
                 return@setOnClickListener
             }
 
-            val popup = PopupMenu(fragment.context, it)
+            val popup = PopupMenu(fragment.context!!, it)
 
             popup.inflate(R.menu.list_item_radio)
 
@@ -68,7 +64,7 @@ class RadioListAdapter constructor(
                     }
                 }
 
-                with(fragment.context) {
+                with(fragment.context!!) {
                     if (intent.resolveActivity(packageManager) != null) {
                         startActivity(intent)
                     }
@@ -96,13 +92,13 @@ class RadioListAdapter constructor(
         with(radios[position]) {
             val diff = payloads[0] as Bundle
             for (key in diff.keySet()) {
-                if (key == RadioListDiffCallback.BUNDLE_DIFF_NAME) {
-                    holder.bindRadioTitle(name)
-                } else if (key == RadioListDiffCallback.BUNDLE_DIFF_DESCRIPTION) {
-                    holder.bindRadioDescription(description)
-                } else if (key == RadioListDiffCallback.BUNDLE_DIFF_LOGO) {
-                    val logoUrl = if (listType == PREFERENCE_VALUE_LIST_TYPE_GRID) mediumLogo else smallLogo
-                    holder.bindRadioLogo(logoUrl)
+                when (key) {
+                    RadioListDiffCallback.BUNDLE_DIFF_NAME -> holder.bindRadioTitle(name)
+                    RadioListDiffCallback.BUNDLE_DIFF_DESCRIPTION -> holder.bindRadioDescription(description)
+                    RadioListDiffCallback.BUNDLE_DIFF_LOGO -> {
+                        val logoUrl = if (listType == PREFERENCE_VALUE_LIST_TYPE_GRID) mediumLogo else smallLogo
+                        holder.bindRadioLogo(logoUrl)
+                    }
                 }
             }
         }
@@ -111,15 +107,6 @@ class RadioListAdapter constructor(
     override fun getItemCount() = radios.size
 
     inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        @BindView(R.id.text_radio_title) lateinit var textRadioTitle: TextView
-        @BindView(R.id.text_radio_description) lateinit var textRadioDescription: TextView
-        @BindView(R.id.image_radio_logo) lateinit var imageRadioLogo: ImageView
-        @BindView(R.id.button_radio_links) lateinit var buttonRadioLinks: ImageButton
-
-        init {
-            ButterKnife.bind(this, view)
-        }
-
         fun bindRadio(radio: Radio) {
             bindRadioTitle(radio.name)
             bindRadioDescription(radio.description)
@@ -129,22 +116,21 @@ class RadioListAdapter constructor(
         }
 
         fun bindRadioTitle(title: String) {
-            textRadioTitle.text = title
+            itemView.text_radio_title.text = title
         }
 
         fun bindRadioDescription(description: String) {
-            textRadioDescription.text = description
+            itemView.text_radio_description.text = description
         }
 
         fun bindRadioLogo(logoUrl: String) {
-            Glide.with(fragment)
-                    .from(String::class.java)
+            GlideApp.with(fragment)
                     .asBitmap()
-                    .placeholder(ContextCompat.getDrawable(fragment.context, R.drawable.ic_radio_blue_40dp))
-                    .error(ContextCompat.getDrawable(fragment.context, R.drawable.ic_radio_blue_40dp))
+                    .placeholder(ContextCompat.getDrawable(fragment.context!!, R.drawable.ic_radio_blue_40dp))
+                    .error(ContextCompat.getDrawable(fragment.context!!, R.drawable.ic_radio_blue_40dp))
                     .diskCacheStrategy(DiskCacheStrategy.ALL)
                     .load(logoUrl)
-                    .into(imageRadioLogo)
+                    .into(itemView.image_radio_logo)
         }
     }
 }

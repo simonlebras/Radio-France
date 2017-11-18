@@ -45,4 +45,6 @@
     <string name="preference_list_types_title">Affichage des radios</string>
     <string name="preference_list_types_summary">Choisir le type de liste utilisé pour afficher les radios</string>
 
+    <string name="notification_channel">Lecture</string>
+
 </resources>

@@ -1,27 +1,22 @@
 package fr.simonlebras.radiofrance.di.modules
 
-import android.app.Activity
-import android.app.Service
-import dagger.Binds
 import dagger.Module
-import dagger.android.ActivityKey
-import dagger.android.AndroidInjector
-import dagger.android.ServiceKey
-import dagger.multibindings.IntoMap
+import dagger.android.ContributesAndroidInjector
+import fr.simonlebras.radiofrance.di.scopes.ActivityScope
+import fr.simonlebras.radiofrance.di.scopes.ServiceScope
 import fr.simonlebras.radiofrance.playback.RadioPlaybackService
-import fr.simonlebras.radiofrance.playback.di.components.RadioPlaybackComponent
+import fr.simonlebras.radiofrance.playback.di.modules.RadioPlaybackModule
 import fr.simonlebras.radiofrance.ui.browser.RadioBrowserActivity
-import fr.simonlebras.radiofrance.ui.browser.di.components.RadioBrowserComponent
+import fr.simonlebras.radiofrance.ui.browser.di.modules.BindingModule
+import fr.simonlebras.radiofrance.ui.browser.di.modules.RadioBrowserModule
 
-@Module(subcomponents = arrayOf(RadioPlaybackComponent::class, RadioBrowserComponent::class))
+@Module
 abstract class BindingModule {
-    @Binds
-    @IntoMap
-    @ServiceKey(RadioPlaybackService::class)
-    abstract fun bindRadioPlaybackServiceInjectorFactory(builder: RadioPlaybackComponent.Builder): AndroidInjector.Factory<out Service>
+    @ContributesAndroidInjector(modules = arrayOf(RadioPlaybackModule::class))
+    @ServiceScope
+    abstract fun contributeRadioPlaybackServiceInjector(): RadioPlaybackService
 
-    @Binds
-    @IntoMap
-    @ActivityKey(RadioBrowserActivity::class)
-    abstract fun bindRadioBrowserActivityInjectorFactory(builder: RadioBrowserComponent.Builder): AndroidInjector.Factory<out Activity>
+    @ContributesAndroidInjector(modules = arrayOf(RadioBrowserModule::class, BindingModule::class))
+    @ActivityScope
+    abstract fun contributeRadioBrowserActivityInjector(): RadioBrowserActivity
 }

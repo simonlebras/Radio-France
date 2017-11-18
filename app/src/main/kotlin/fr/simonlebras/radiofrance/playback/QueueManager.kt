@@ -9,7 +9,7 @@ import fr.simonlebras.radiofrance.playback.data.RadioProvider
 import javax.inject.Inject
 
 @ServiceScope
-class QueueManager @Inject constructor(val context: Context, val radioProvider: RadioProvider) {
+class QueueManager @Inject constructor(val context: Context, private val radioProvider: RadioProvider) {
     private companion object {
         private const val INVALID_INDEX = -1
     }

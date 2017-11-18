@@ -179,7 +179,7 @@ class CastPlayback @Inject constructor(
             }
             else -> {
                 DebugUtils.executeInDebugMode {
-                    Timber.d("State default : ", status)
+                    Timber.d("State default : %d", status)
                 }
             }
         }

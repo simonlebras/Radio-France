@@ -1,25 +1,18 @@
 package fr.simonlebras.radiofrance.ui.browser.di.modules
 
-import android.support.v4.app.Fragment
-import dagger.Binds
 import dagger.Module
-import dagger.android.AndroidInjector
-import dagger.android.support.FragmentKey
-import dagger.multibindings.IntoMap
-import fr.simonlebras.radiofrance.ui.browser.di.components.MiniPlayerComponent
-import fr.simonlebras.radiofrance.ui.browser.di.components.RadioListComponent
+import dagger.android.ContributesAndroidInjector
+import fr.simonlebras.radiofrance.di.scopes.FragmentScope
 import fr.simonlebras.radiofrance.ui.browser.list.RadioListFragment
 import fr.simonlebras.radiofrance.ui.browser.player.MiniPlayerFragment
 
-@Module(subcomponents = arrayOf(RadioListComponent::class, MiniPlayerComponent::class))
+@Module
 abstract class BindingModule {
-    @Binds
-    @IntoMap
-    @FragmentKey(RadioListFragment::class)
-    abstract fun bindRadioListFragmentInjectorFactory(builder: RadioListComponent.Builder): AndroidInjector.Factory<out Fragment>
+    @ContributesAndroidInjector
+    @FragmentScope
+    abstract fun contributeRadioListFragmentInjector(): RadioListFragment
 
-    @Binds
-    @IntoMap
-    @FragmentKey(MiniPlayerFragment::class)
-    abstract fun bindMiniPlayerFragmentInjectorFactory(builder: MiniPlayerComponent.Builder): AndroidInjector.Factory<out Fragment>
+    @ContributesAndroidInjector
+    @FragmentScope
+    abstract fun contributeMiniPlayerFragmentInjector(): MiniPlayerFragment
 }

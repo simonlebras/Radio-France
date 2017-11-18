@@ -6,7 +6,7 @@ import fr.simonlebras.radiofrance.di.scopes.ServiceScope
 import javax.inject.Inject
 
 @ServiceScope
-class MediaSessionCallback @Inject constructor(val playbackManager: PlaybackManager) : MediaSessionCompat.Callback() {
+class MediaSessionCallback @Inject constructor(private val playbackManager: PlaybackManager) : MediaSessionCompat.Callback() {
     override fun onPlay() {
         playbackManager.play()
     }

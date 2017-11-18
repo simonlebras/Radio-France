@@ -3,7 +3,6 @@ package fr.simonlebras.radiofrance.di.modules
 import android.content.Context
 import android.content.SharedPreferences
 import android.preference.PreferenceManager
-import com.facebook.stetho.okhttp3.StethoInterceptor
 import dagger.Module
 import dagger.Provides
 import fr.simonlebras.radiofrance.utils.DebugUtils
@@ -15,17 +14,13 @@ import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
 
 @Module
-class ApplicationModule(private val context: Context) {
+class ApplicationModule {
     private companion object {
         private const val CACHE_DIRECTORY = "HttpCache"
         private const val CACHE_SIZE: Long = 20 * 1024 * 1024 // 20 MiB
 
         private const val TIMEOUT = 10L // in seconds
     }
-
-    @Provides
-    @Singleton
-    fun provideContext() = context
 
     @Provides
     @Singleton
@@ -48,12 +43,9 @@ class ApplicationModule(private val context: Context) {
                 .cache(cache)
 
         DebugUtils.executeInDebugMode {
-            val loggingInterceptor = HttpLoggingInterceptor().apply {
+            builder.addNetworkInterceptor(HttpLoggingInterceptor().apply {
                 level = HttpLoggingInterceptor.Level.BODY
-            }
-
-            builder.addNetworkInterceptor(loggingInterceptor)
-                    .addNetworkInterceptor(StethoInterceptor())
+            })
         }
 
         return builder.build()

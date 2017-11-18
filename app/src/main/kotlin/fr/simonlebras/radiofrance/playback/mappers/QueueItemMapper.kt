@@ -18,10 +18,4 @@ object QueueItemMapper {
 
         return MediaSessionCompat.QueueItem(builder.build(), index)
     }
-
-    fun transform(metadata: Iterable<MediaMetadataCompat>): List<MediaSessionCompat.QueueItem> {
-        return metadata.mapIndexed { index, value ->
-            transform(value, index.toLong())
-        }
-    }
 }

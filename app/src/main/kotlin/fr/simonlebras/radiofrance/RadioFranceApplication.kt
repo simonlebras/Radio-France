@@ -2,36 +2,33 @@ package fr.simonlebras.radiofrance
 
 import android.annotation.TargetApi
 import android.app.Activity
-import android.app.Application
 import android.app.Service
 import android.os.Build.VERSION_CODES.M
 import android.os.StrictMode
 import android.support.v7.preference.PreferenceManager
-import com.facebook.stetho.Stetho
-import com.facebook.stetho.timber.StethoTree
 import com.squareup.leakcanary.LeakCanary
 import dagger.android.DispatchingAndroidInjector
-import dagger.android.HasDispatchingActivityInjector
-import dagger.android.HasDispatchingServiceInjector
-import fr.simonlebras.radiofrance.di.components.ApplicationComponent
+import dagger.android.HasActivityInjector
+import dagger.android.HasServiceInjector
+import dagger.android.support.DaggerApplication
 import fr.simonlebras.radiofrance.di.components.DaggerApplicationComponent
-import fr.simonlebras.radiofrance.di.modules.ApplicationModule
 import fr.simonlebras.radiofrance.utils.DebugUtils
 import fr.simonlebras.radiofrance.utils.VersionUtils.supportsSdkVersion
 import timber.log.Timber
 import javax.inject.Inject
 
-class RadioFranceApplication : Application(),
-        HasDispatchingActivityInjector,
-        HasDispatchingServiceInjector {
-    val component: ApplicationComponent by lazy(LazyThreadSafetyMode.NONE) {
+class RadioFranceApplication : DaggerApplication(),
+        HasActivityInjector,
+        HasServiceInjector {
+
+    val component by lazy(LazyThreadSafetyMode.NONE) {
         DaggerApplicationComponent.builder()
-                .applicationModule(ApplicationModule(this))
+                .context(this)
                 .build()
     }
 
-    @Inject lateinit var activityInjector: DispatchingAndroidInjector<Activity>
-    @Inject lateinit var serviceInjector: DispatchingAndroidInjector<Service>
+    @Inject lateinit var dispatchingActivityInjector: DispatchingAndroidInjector<Activity>
+    @Inject lateinit var dispatchingServiceInjector: DispatchingAndroidInjector<Service>
 
     @TargetApi(M)
     override fun onCreate() {
@@ -44,19 +41,13 @@ class RadioFranceApplication : Application(),
         DebugUtils.executeInDebugMode {
             setupTimber()
 
-            setupStetho()
-
             setupStrictMode()
         }
-
-        component.injectMembers(this)
 
         PreferenceManager.setDefaultValues(this, R.xml.preferences, false)
     }
 
-    override fun activityInjector() = activityInjector
-
-    override fun serviceInjector() = serviceInjector
+    override fun applicationInjector() = component
 
     private fun setupLeakCanary(): Boolean {
         if (LeakCanary.isInAnalyzerProcess(this)) {
@@ -69,11 +60,6 @@ class RadioFranceApplication : Application(),
 
     private fun setupTimber() {
         Timber.plant(Timber.DebugTree())
-        Timber.plant(StethoTree())
-    }
-
-    private fun setupStetho() {
-        Stetho.initializeWithDefaults(this)
     }
 
     @TargetApi(M)
@@ -85,10 +71,10 @@ class RadioFranceApplication : Application(),
                 .detectAll()
                 .penaltyLog()
 
-        supportsSdkVersion(M, {
+        supportsSdkVersion(M) {
             threadPolicyBuilder.detectResourceMismatches()
             vmPolicyBuilder.detectCleartextNetwork()
-        })
+        }
 
         StrictMode.setThreadPolicy(threadPolicyBuilder.build())
         StrictMode.setVmPolicy(vmPolicyBuilder.build())

@@ -1,5 +1,6 @@
 package fr.simonlebras.radiofrance.playback
 
+import android.annotation.SuppressLint
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -66,6 +67,7 @@ class LocalPlayback @Inject constructor(
         }
     }
 
+    @SuppressLint("WakelockTimeout")
     override fun play(item: MediaSessionCompat.QueueItem) {
         playOnFocusGain = true
 
@@ -156,7 +158,7 @@ class LocalPlayback @Inject constructor(
 
     override fun onPlayerError(error: ExoPlaybackException) {
         DebugUtils.executeInDebugMode {
-            Timber.e("ExoPlayer error", error)
+            Timber.e(error, "ExoPlayer error")
         }
 
         stop(false)
@@ -176,6 +178,12 @@ class LocalPlayback @Inject constructor(
     }
 
     override fun onTracksChanged(trackGroups: TrackGroupArray?, trackSelections: TrackSelectionArray?) {
+    }
+
+    override fun onPlaybackParametersChanged(playbackParameters: PlaybackParameters?) {
+    }
+
+    override fun onRepeatModeChanged(repeatMode: Int) {
     }
 
     private fun initializeExoPlayer() {

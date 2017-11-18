@@ -1,31 +1,37 @@
 package fr.simonlebras.radiofrance.playback
 
+import android.annotation.TargetApi
 import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.graphics.Bitmap
+import android.os.Build
 import android.os.RemoteException
+import android.support.annotation.RequiresApi
+import android.support.v4.app.NotificationCompat
 import android.support.v4.app.NotificationManagerCompat
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import android.support.v4.media.session.PlaybackStateCompat.*
-import android.support.v7.app.NotificationCompat
-import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.request.Request
-import com.bumptech.glide.request.animation.GlideAnimation
 import com.bumptech.glide.request.target.SimpleTarget
+import com.bumptech.glide.request.transition.Transition
 import fr.simonlebras.radiofrance.BuildConfig
 import fr.simonlebras.radiofrance.R
 import fr.simonlebras.radiofrance.di.scopes.ServiceScope
 import fr.simonlebras.radiofrance.ui.browser.RadioBrowserActivity
 import fr.simonlebras.radiofrance.utils.DebugUtils
+import fr.simonlebras.radiofrance.utils.GlideApp
 import fr.simonlebras.radiofrance.utils.MediaMetadataUtils
+import fr.simonlebras.radiofrance.utils.VersionUtils
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -36,6 +42,8 @@ class RadioNotificationManager @Inject constructor(
         private val notificationManager: NotificationManagerCompat
 ) : BroadcastReceiver() {
     private companion object {
+        const val CHANNEL_ID = "${BuildConfig.APPLICATION_ID}.MUSIC_CHANNEL_ID"
+
         const val NOTIFICATION_ID = 1
 
         const val REQUEST_CODE = 100
@@ -119,7 +127,7 @@ class RadioNotificationManager @Inject constructor(
             }
             else -> {
                 DebugUtils.executeInDebugMode {
-                    Timber.e("Unknown action: ", action)
+                    Timber.e("Unknown action: %s", action)
                 }
             }
         }
@@ -178,8 +186,8 @@ class RadioNotificationManager @Inject constructor(
 
             sessionToken = token
 
-            if (sessionToken != null) {
-                controller = MediaControllerCompat(service, sessionToken)
+            sessionToken?.let {
+                controller = MediaControllerCompat(service, it)
 
                 transportControls = controller!!.transportControls
 
@@ -202,12 +210,17 @@ class RadioNotificationManager @Inject constructor(
         return PendingIntent.getActivity(service, RadioBrowserActivity.REQUEST_CODE_NOTIFICATION, contentIntent, PendingIntent.FLAG_CANCEL_CURRENT)
     }
 
+    @TargetApi(Build.VERSION_CODES.O)
     private fun createNotification(): Notification? {
         if ((metadata == null) || (playbackState == null)) {
             return null
         }
 
-        val builder = NotificationCompat.Builder(service)
+        VersionUtils.supportsSdkVersion(Build.VERSION_CODES.O) {
+            createNotificationChannel()
+        }
+
+        val builder = NotificationCompat.Builder(service, CHANNEL_ID)
 
         var playPauseButtonPosition = 0
         if (playbackState!!.actions and ACTION_SKIP_TO_PREVIOUS != 0L) {
@@ -225,7 +238,7 @@ class RadioNotificationManager @Inject constructor(
         val description = metadata!!.description
 
         builder
-                .setStyle(NotificationCompat.MediaStyle()
+                .setStyle(android.support.v4.media.app.NotificationCompat.MediaStyle()
                         .setShowActionsInCompactView(playPauseButtonPosition)
                         .setMediaSession(sessionToken))
                 .setSmallIcon(R.drawable.ic_radio_white_24dp)
@@ -233,8 +246,7 @@ class RadioNotificationManager @Inject constructor(
                 .setContentIntent(createContentIntent())
                 .setContentTitle(description.title)
                 .setContentText(description.subtitle)
-                .setWhen(0)
-                .setShowWhen(false)
+                .setOnlyAlertOnce(true)
                 .setUsesChronometer(false)
 
         val extras = controller?.extras
@@ -251,7 +263,7 @@ class RadioNotificationManager @Inject constructor(
 
         val logoUrl = metadata?.getString(MediaMetadataUtils.METADATA_KEY_SMALL_LOGO)
         target = object : SimpleTarget<Bitmap>() {
-            override fun onResourceReady(resource: Bitmap, glideAnimation: GlideAnimation<in Bitmap>) {
+            override fun onResourceReady(resource: Bitmap?, transition: Transition<in Bitmap>?) {
                 if (metadata?.getString(MediaMetadataUtils.METADATA_KEY_SMALL_LOGO) == logoUrl) {
                     builder.setLargeIcon(resource)
 
@@ -260,13 +272,13 @@ class RadioNotificationManager @Inject constructor(
             }
         }
 
-        request = Glide.with(context)
-                .load(logoUrl)
+        request = GlideApp.with(context)
                 .asBitmap()
                 .override(notificationSize, notificationSize)
                 .placeholder(R.drawable.ic_radio_blue_64dp)
                 .error(R.drawable.ic_radio_blue_64dp)
                 .diskCacheStrategy(DiskCacheStrategy.ALL)
+                .load(logoUrl)
                 .into(target)
                 .request
 
@@ -288,5 +300,17 @@ class RadioNotificationManager @Inject constructor(
         }
 
         builder.setOngoing(playbackState!!.state == STATE_PLAYING)
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun createNotificationChannel() {
+        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        if (notificationManager.getNotificationChannel(CHANNEL_ID) == null) {
+            val notificationChannel = NotificationChannel(CHANNEL_ID,
+                    context.getString(R.string.notification_channel),
+                    NotificationManager.IMPORTANCE_LOW)
+
+            notificationManager.createNotificationChannel(notificationChannel)
+        }
     }
 }

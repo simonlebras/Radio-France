@@ -87,7 +87,7 @@ class RadioPlaybackModule {
 
     @Provides
     fun provideWifiLock(context: Context): WifiManager.WifiLock {
-        val wifiManager = context.getSystemService(Context.WIFI_SERVICE) as WifiManager
+        val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
         return wifiManager.createWifiLock(LOCK_NAME)
     }
 
@@ -99,9 +99,8 @@ class RadioPlaybackModule {
 
     @Provides
     @ServiceScope
-    fun provideMediaRouter(context: Context): MediaRouter {
-        return MediaRouter.getInstance(context.applicationContext)
-    }
+    fun provideMediaRouter(context: Context): MediaRouter =
+            MediaRouter.getInstance(context.applicationContext)
 
     @Provides
     @ServiceScope
@@ -121,14 +120,12 @@ class RadioPlaybackModule {
     @Provides
     @ServiceScope
     @Named(LOCAL_KEY)
-    fun provideLocalPlaybackFactory(provider: Provider<LocalPlayback>): Function1<@JvmWildcard Context, @JvmWildcard Playback> {
-        return { provider.get() }
-    }
+    fun provideLocalPlaybackFactory(provider: Provider<LocalPlayback>): Function1<@JvmWildcard Context, @JvmWildcard Playback> =
+            { provider.get() }
 
     @Provides
     @ServiceScope
     @Named(CAST_KEY)
-    fun provideCastPlaybackFactory(provider: Provider<CastPlayback>): Function1<@JvmWildcard Context, @JvmWildcard Playback> {
-        return { provider.get() }
-    }
+    fun provideCastPlaybackFactory(provider: Provider<CastPlayback>): Function1<@JvmWildcard Context, @JvmWildcard Playback> =
+            { provider.get() }
 }
