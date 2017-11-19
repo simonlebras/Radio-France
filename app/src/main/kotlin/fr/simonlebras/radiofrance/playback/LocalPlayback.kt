@@ -6,6 +6,8 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.media.AudioAttributes
+import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.net.Uri
 import android.net.wifi.WifiManager
@@ -17,7 +19,7 @@ import android.support.v4.media.session.PlaybackStateCompat.*
 import com.google.android.exoplayer2.*
 import com.google.android.exoplayer2.C.CONTENT_TYPE_MUSIC
 import com.google.android.exoplayer2.C.USAGE_MEDIA
-import com.google.android.exoplayer2.audio.AudioAttributes
+import com.google.android.exoplayer2.audio.AudioAttributes as ExoPlayerAudioAttributes
 import com.google.android.exoplayer2.extractor.ExtractorsFactory
 import com.google.android.exoplayer2.extractor.mp3.Mp3Extractor
 import com.google.android.exoplayer2.source.ExtractorMediaSource
@@ -63,6 +65,19 @@ class LocalPlayback @Inject constructor(
 
     private var playOnFocusGain = false
     private var audioFocus = AUDIO_NO_FOCUS_NO_DUCK
+    private val audioFocusRequest by lazy(LazyThreadSafetyMode.NONE) {
+        val audioAttributes = AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_MEDIA)
+                .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                .build()
+
+        AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
+                .setAudioAttributes(audioAttributes)
+                .setAcceptsDelayedFocusGain(true)
+                .setOnAudioFocusChangeListener(this)
+                .build()
+    }
+
     private var audioNoisyReceiverRegistered = false
     private val audioNoisyIntentFilter = IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY)
     private val audioNoisyReceiver = object : BroadcastReceiver() {
@@ -186,7 +201,7 @@ class LocalPlayback @Inject constructor(
     private fun initializeExoPlayer() {
         if (exoPlayer == null) {
             exoPlayer = ExoPlayerFactory.newSimpleInstance(context, DefaultTrackSelector()).apply {
-                audioAttributes = AudioAttributes.Builder()
+                audioAttributes = ExoPlayerAudioAttributes.Builder()
                         .setContentType(CONTENT_TYPE_MUSIC)
                         .setUsage(USAGE_MEDIA)
                         .build()
@@ -219,7 +234,13 @@ class LocalPlayback @Inject constructor(
 
     private fun requestAudioFocus() {
         if (audioFocus != AUDIO_FOCUSED) {
-            val result = audioManager.requestAudioFocus(this, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN)
+            val result: Int
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                result = audioManager.requestAudioFocus(audioFocusRequest)
+            } else {
+                result = audioManager.requestAudioFocus(this, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN)
+            }
+
             if (result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
                 audioFocus = AUDIO_FOCUSED
             }
@@ -228,7 +249,14 @@ class LocalPlayback @Inject constructor(
 
     private fun abandonAudioFocus() {
         if (audioFocus == AUDIO_FOCUSED) {
-            if (audioManager.abandonAudioFocus(this) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
+            val result: Int
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                result = audioManager.abandonAudioFocusRequest(audioFocusRequest)
+            } else {
+                result = audioManager.abandonAudioFocus(this)
+            }
+
+            if (result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
                 audioFocus = AUDIO_NO_FOCUS_NO_DUCK
             }
         }
