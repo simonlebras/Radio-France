@@ -13,22 +13,16 @@ import android.view.ViewGroup
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import fr.simonlebras.radiofrance.R
 import fr.simonlebras.radiofrance.models.Radio
-import fr.simonlebras.radiofrance.ui.preferences.PreferencesFragment.Companion.PREFERENCE_VALUE_LIST_TYPE_GRID
 import fr.simonlebras.radiofrance.utils.GlideApp
 import kotlinx.android.synthetic.main.list_item_radio.view.*
 
-class RadioListAdapter constructor(
-        private val fragment: RadioListFragment,
-        private val listType: String
-) : RecyclerView.Adapter<RadioListAdapter.ViewHolder>() {
+class RadioListAdapter(private val fragment: RadioListFragment) : RecyclerView.Adapter<RadioListAdapter.ViewHolder>() {
     var radios: List<Radio> = emptyList()
 
     private val inflater = LayoutInflater.from(fragment.context)
 
-    private val itemLayoutId: Int = if (listType == PREFERENCE_VALUE_LIST_TYPE_GRID) R.layout.grid_item_radio else R.layout.list_item_radio
-
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        val viewHolder = ViewHolder(inflater.inflate(itemLayoutId, parent, false))
+        val viewHolder = ViewHolder(inflater.inflate(R.layout.list_item_radio, parent, false))
 
         viewHolder.itemView.setOnClickListener {
             val position = viewHolder.adapterPosition
@@ -95,10 +89,7 @@ class RadioListAdapter constructor(
                 when (key) {
                     RadioListDiffCallback.BUNDLE_DIFF_NAME -> holder.bindRadioTitle(name)
                     RadioListDiffCallback.BUNDLE_DIFF_DESCRIPTION -> holder.bindRadioDescription(description)
-                    RadioListDiffCallback.BUNDLE_DIFF_LOGO -> {
-                        val logoUrl = if (listType == PREFERENCE_VALUE_LIST_TYPE_GRID) mediumLogo else smallLogo
-                        holder.bindRadioLogo(logoUrl)
-                    }
+                    RadioListDiffCallback.BUNDLE_DIFF_LOGO -> holder.bindRadioLogo(smallLogo)
                 }
             }
         }
@@ -110,9 +101,7 @@ class RadioListAdapter constructor(
         fun bindRadio(radio: Radio) {
             bindRadioTitle(radio.name)
             bindRadioDescription(radio.description)
-
-            val logoUrl = if (listType == PREFERENCE_VALUE_LIST_TYPE_GRID) radio.mediumLogo else radio.smallLogo
-            bindRadioLogo(logoUrl)
+            bindRadioLogo(radio.smallLogo)
         }
 
         fun bindRadioTitle(title: String) {

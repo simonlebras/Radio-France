@@ -2,8 +2,6 @@ package fr.simonlebras.radiofrance.ui.browser
 
 import android.app.SearchManager
 import android.content.Context
-import android.content.Intent
-import android.content.SharedPreferences
 import android.os.Bundle
 import android.os.Handler
 import android.support.v4.app.Fragment
@@ -25,9 +23,6 @@ import fr.simonlebras.radiofrance.R
 import fr.simonlebras.radiofrance.ui.base.BaseActivity
 import fr.simonlebras.radiofrance.ui.browser.list.RadioListFragment
 import fr.simonlebras.radiofrance.ui.browser.player.MiniPlayerFragment
-import fr.simonlebras.radiofrance.ui.preferences.PreferencesActivity
-import fr.simonlebras.radiofrance.ui.preferences.PreferencesFragment.Companion.PREFERENCE_KEY_LIST_TYPE
-import fr.simonlebras.radiofrance.ui.preferences.PreferencesFragment.Companion.PREFERENCE_VALUE_LIST_TYPE_GRID
 import io.reactivex.android.schedulers.AndroidSchedulers
 import kotlinx.android.synthetic.main.activity_radio_browser.*
 import kotlinx.android.synthetic.main.partial_toolbar.*
@@ -41,8 +36,6 @@ class RadioBrowserActivity : BaseActivity<RadioBrowserPresenter>(),
         const val REQUEST_CODE_NOTIFICATION = 100
         const val REQUEST_CODE_SESSION = 101
 
-        const val REQUEST_CODE_PREFERENCES = 100
-
         const val BUNDLE_QUERY = "BUNDLE_QUERY"
 
         init {
@@ -52,7 +45,6 @@ class RadioBrowserActivity : BaseActivity<RadioBrowserPresenter>(),
 
     @Inject lateinit var fragmentInjector: DispatchingAndroidInjector<Fragment>
     @Inject lateinit var presenterProvider: Lazy<RadioBrowserPresenter>
-    @Inject lateinit var sharedPreferences: SharedPreferences
 
     private lateinit var radioListFragment: RadioListFragment
     private lateinit var miniPlayerFragment: MiniPlayerFragment
@@ -81,9 +73,6 @@ class RadioBrowserActivity : BaseActivity<RadioBrowserPresenter>(),
 
     private var query: String? = null
 
-    private lateinit var listType: String
-    private var listTypeChanged = false
-
     override fun onCreate(savedInstanceState: Bundle?) {
         setTheme(R.style.AppTheme)
 
@@ -92,17 +81,10 @@ class RadioBrowserActivity : BaseActivity<RadioBrowserPresenter>(),
         setContentView(R.layout.activity_radio_browser)
         setSupportActionBar(toolbar)
 
-        listType = sharedPreferences.getString(PREFERENCE_KEY_LIST_TYPE, PREFERENCE_VALUE_LIST_TYPE_GRID)
-
-        if (savedInstanceState == null) {
-            replaceRadioListFragment(listType, false)
-        } else {
-            radioListFragment = supportFragmentManager.findFragmentByTag(RadioListFragment.TAG) as RadioListFragment
-
-            query = savedInstanceState.getString(BUNDLE_QUERY, null)
-        }
-
+        radioListFragment = supportFragmentManager.findFragmentById(R.id.fragment_radio_browser) as RadioListFragment
         miniPlayerFragment = supportFragmentManager.findFragmentById(R.id.fragment_mini_player) as MiniPlayerFragment
+
+        query = savedInstanceState?.getString(BUNDLE_QUERY, null)
 
         castContext = CastContext.getSharedInstance(this)
 
@@ -114,12 +96,6 @@ class RadioBrowserActivity : BaseActivity<RadioBrowserPresenter>(),
         super.onPostResume()
 
         changeMiniPlayerVisibility()
-
-        if (listTypeChanged) {
-            listTypeChanged = false
-
-            replaceRadioListFragment(listType, true)
-        }
     }
 
     override fun onResume() {
@@ -175,32 +151,6 @@ class RadioBrowserActivity : BaseActivity<RadioBrowserPresenter>(),
                 }))
 
         return true
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean = when (item.itemId) {
-        R.id.action_preferences -> {
-            val intent = Intent(this, PreferencesActivity::class.java)
-            startActivityForResult(intent, REQUEST_CODE_PREFERENCES)
-
-            true
-        }
-        else -> super.onOptionsItemSelected(item)
-    }
-
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        if (requestCode == REQUEST_CODE_PREFERENCES) {
-            val newListType = sharedPreferences.getString(PREFERENCE_KEY_LIST_TYPE, PREFERENCE_VALUE_LIST_TYPE_GRID)
-
-            if (newListType != listType) {
-                listType = newListType
-
-                listTypeChanged = true
-            }
-
-            return
-        }
-
-        super.onActivityResult(requestCode, resultCode, data)
     }
 
     override fun restorePresenter() {
@@ -274,23 +224,6 @@ class RadioBrowserActivity : BaseActivity<RadioBrowserPresenter>(),
 
         if (mediaRouteMenuItem?.isVisible == true) {
             handler.post(handlerCallbacks)
-        }
-    }
-
-    private fun replaceRadioListFragment(listType: String, animate: Boolean) {
-        radioListFragment = RadioListFragment.newInstance(listType)
-
-        val transaction = supportFragmentManager.beginTransaction()
-
-        if (animate) {
-            transaction.setCustomAnimations(android.R.anim.fade_in, android.R.anim.fade_out)
-        }
-
-        transaction.replace(R.id.container_radio_list, radioListFragment, RadioListFragment.TAG)
-                .commitNow()
-
-        if (!query.isNullOrBlank()) {
-            radioListFragment.searchRadios(query!!)
         }
     }
 }

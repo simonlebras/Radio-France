@@ -1,8 +1,6 @@
 package fr.simonlebras.radiofrance.di.modules
 
 import android.content.Context
-import android.content.SharedPreferences
-import android.preference.PreferenceManager
 import dagger.Module
 import dagger.Provides
 import fr.simonlebras.radiofrance.utils.DebugUtils
@@ -24,23 +22,12 @@ class ApplicationModule {
 
     @Provides
     @Singleton
-    fun provideSharedPreferences(context: Context): SharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
-
-    @Provides
-    @Singleton
-    fun provideCache(context: Context): Cache {
-        val cacheDirectory = File(context.cacheDir, CACHE_DIRECTORY)
-        return Cache(cacheDirectory, CACHE_SIZE)
-    }
-
-    @Provides
-    @Singleton
-    fun provideOkHttpClient(cache: Cache): OkHttpClient {
+    fun provideOkHttpClient(context: Context): OkHttpClient {
         val builder = OkHttpClient.Builder()
                 .connectTimeout(TIMEOUT, TimeUnit.SECONDS)
                 .readTimeout(TIMEOUT, TimeUnit.SECONDS)
                 .writeTimeout(TIMEOUT, TimeUnit.SECONDS)
-                .cache(cache)
+                .cache(Cache(File(context.cacheDir, CACHE_DIRECTORY), CACHE_SIZE))
 
         DebugUtils.executeInDebugMode {
             builder.addNetworkInterceptor(HttpLoggingInterceptor().apply {

@@ -9,8 +9,9 @@
         android:id="@+id/partial_toolbar"
         layout="@layout/partial_toolbar" />
 
-    <FrameLayout
-        android:id="@+id/container_radio_list"
+    <fragment
+        android:id="@+id/fragment_radio_browser"
+        android:name="fr.simonlebras.radiofrance.ui.browser.list.RadioListFragment"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1" />
