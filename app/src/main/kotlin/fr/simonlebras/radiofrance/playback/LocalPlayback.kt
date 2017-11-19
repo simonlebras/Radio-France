@@ -12,14 +12,12 @@ import android.media.AudioManager
 import android.net.Uri
 import android.net.wifi.WifiManager
 import android.os.Build
-import android.os.Handler
 import android.os.PowerManager
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat.*
 import com.google.android.exoplayer2.*
 import com.google.android.exoplayer2.C.CONTENT_TYPE_MUSIC
 import com.google.android.exoplayer2.C.USAGE_MEDIA
-import com.google.android.exoplayer2.audio.AudioAttributes as ExoPlayerAudioAttributes
 import com.google.android.exoplayer2.extractor.ExtractorsFactory
 import com.google.android.exoplayer2.extractor.mp3.Mp3Extractor
 import com.google.android.exoplayer2.source.ExtractorMediaSource
@@ -31,6 +29,7 @@ import fr.simonlebras.radiofrance.R
 import fr.simonlebras.radiofrance.utils.DebugUtils
 import timber.log.Timber
 import javax.inject.Inject
+import com.google.android.exoplayer2.audio.AudioAttributes as ExoPlayerAudioAttributes
 
 @TargetApi(Build.VERSION_CODES.O)
 class LocalPlayback @Inject constructor(
@@ -61,7 +60,6 @@ class LocalPlayback @Inject constructor(
 
     private var exoPlayer: SimpleExoPlayer? = null
     private val userAgent = context.getString(R.string.app_name)
-    private val audioHandler = Handler()
 
     private var playOnFocusGain = false
     private var audioFocus = AUDIO_NO_FOCUS_NO_DUCK
@@ -193,7 +191,7 @@ class LocalPlayback @Inject constructor(
 
         val dataSourceFactory = DefaultHttpDataSourceFactory(userAgent, null, TIMEOUT, TIMEOUT, true)
         val extractorsFactory = ExtractorsFactory { arrayOf(Mp3Extractor()) }
-        val source = ExtractorMediaSource(radioUri, dataSourceFactory, extractorsFactory, audioHandler, null)
+        val source = ExtractorMediaSource(radioUri, dataSourceFactory, extractorsFactory, null, null)
 
         exoPlayer!!.prepare(source)
     }
