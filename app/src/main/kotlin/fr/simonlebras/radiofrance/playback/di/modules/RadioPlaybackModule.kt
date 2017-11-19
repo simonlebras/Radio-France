@@ -14,6 +14,8 @@ import com.google.android.gms.cast.framework.CastContext
 import com.google.android.gms.cast.framework.CastSession
 import com.google.android.gms.cast.framework.SessionManager
 import com.google.android.gms.cast.framework.media.RemoteMediaClient
+import com.squareup.moshi.KotlinJsonAdapterFactory
+import com.squareup.moshi.Moshi
 import dagger.Module
 import dagger.Provides
 import fr.simonlebras.radiofrance.BuildConfig.FIREBASE_ENDPOINT
@@ -66,7 +68,9 @@ class RadioPlaybackModule {
                 .baseUrl(FIREBASE_ENDPOINT)
                 .client(okHttpClient)
                 .addCallAdapterFactory(RxJava2CallAdapterFactory.create())
-                .addConverterFactory(MoshiConverterFactory.create())
+                .addConverterFactory(MoshiConverterFactory.create(Moshi.Builder()
+                        .add(KotlinJsonAdapterFactory())
+                        .build()))
                 .build()
     }
 
