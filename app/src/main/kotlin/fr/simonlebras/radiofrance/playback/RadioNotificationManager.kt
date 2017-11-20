@@ -46,7 +46,7 @@ class RadioNotificationManager @Inject constructor(
 
         const val NOTIFICATION_ID = 1
 
-        const val REQUEST_CODE = 100
+        const val REQUEST_CODE_CONTROL = 100
 
         const val ACTION_PLAY = "${BuildConfig.APPLICATION_ID}.play"
         const val ACTION_PAUSE = "${BuildConfig.APPLICATION_ID}.pause"
@@ -56,15 +56,15 @@ class RadioNotificationManager @Inject constructor(
     }
 
     private val packageName = service.packageName
-    private val pauseIntent = PendingIntent.getBroadcast(service, REQUEST_CODE,
+    private val pauseIntent = PendingIntent.getBroadcast(service, REQUEST_CODE_CONTROL,
             Intent(ACTION_PAUSE).setPackage(packageName), PendingIntent.FLAG_CANCEL_CURRENT)
-    private val playIntent = PendingIntent.getBroadcast(service, REQUEST_CODE,
+    private val playIntent = PendingIntent.getBroadcast(service, REQUEST_CODE_CONTROL,
             Intent(ACTION_PLAY).setPackage(packageName), PendingIntent.FLAG_CANCEL_CURRENT)
-    private val previousIntent = PendingIntent.getBroadcast(service, REQUEST_CODE,
+    private val previousIntent = PendingIntent.getBroadcast(service, REQUEST_CODE_CONTROL,
             Intent(ACTION_PREV).setPackage(packageName), PendingIntent.FLAG_CANCEL_CURRENT)
-    private val nextIntent = PendingIntent.getBroadcast(service, REQUEST_CODE,
+    private val nextIntent = PendingIntent.getBroadcast(service, REQUEST_CODE_CONTROL,
             Intent(ACTION_NEXT).setPackage(packageName), PendingIntent.FLAG_CANCEL_CURRENT)
-    private val stopCastingIntent = PendingIntent.getBroadcast(service, REQUEST_CODE,
+    private val stopCastingIntent = PendingIntent.getBroadcast(service, REQUEST_CODE_CONTROL,
             Intent(ACTION_STOP_CASTING).setPackage(packageName), PendingIntent.FLAG_CANCEL_CURRENT)
 
     private var sessionToken: MediaSessionCompat.Token? = null
