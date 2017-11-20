@@ -11,6 +11,9 @@ import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import com.google.android.gms.cast.framework.CastSession
 import com.google.android.gms.cast.framework.SessionManager
+import com.google.android.gms.common.ConnectionResult
+import com.google.android.gms.common.GoogleApiAvailability
+import dagger.Lazy
 import dagger.android.AndroidInjection
 import fr.simonlebras.radiofrance.BuildConfig
 import fr.simonlebras.radiofrance.R
@@ -20,6 +23,7 @@ import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.observers.DisposableSingleObserver
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
+
 
 /**
  * Class providing radio browsing and playback.
@@ -46,11 +50,14 @@ class RadioPlaybackService : MediaBrowserServiceCompat(), PlaybackManager.Callba
     @Inject lateinit var playbackManager: PlaybackManager
     @Inject lateinit var radioNotificationManager: RadioNotificationManager
     @Inject lateinit var delayedStopHandler: DelayedStopHandler
-    @Inject lateinit var castSessionManager: SessionManager
-    @Inject lateinit var castSessionManagerListener: CastSessionManagerListener
+    @Inject lateinit var castSessionManagerProvider: Lazy<SessionManager>
+    @Inject lateinit var castSessionManagerListenerProvider: Lazy<CastSessionManagerListener>
 
     private val compositeDisposable = CompositeDisposable()
     private lateinit var root: String
+
+    private var castSessionManager: SessionManager? = null
+    private var castSessionManagerListener: CastSessionManagerListener? = null
 
     override fun onCreate() {
         AndroidInjection.inject(this)
@@ -79,6 +86,12 @@ class RadioPlaybackService : MediaBrowserServiceCompat(), PlaybackManager.Callba
         radioNotificationManager.updateSessionToken()
 
         playbackManager.updatePlaybackState(null)
+
+        if (GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(this) == ConnectionResult.SUCCESS) {
+            castSessionManager = castSessionManagerProvider.get()
+            castSessionManagerListener = castSessionManagerListenerProvider.get()
+            castSessionManager!!.addSessionManagerListener(castSessionManagerListener!!, CastSession::class.java)
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -88,7 +101,7 @@ class RadioPlaybackService : MediaBrowserServiceCompat(), PlaybackManager.Callba
                 if (CMD_PAUSE == command) {
                     playbackManager.pause()
                 } else if (CMD_STOP_CASTING == command) {
-                    castSessionManager.endCurrentSession(true)
+                    castSessionManager!!.endCurrentSession(true)
                 }
             } else {
                 MediaButtonReceiver.handleIntent(mediaSession, intent)
@@ -106,7 +119,7 @@ class RadioPlaybackService : MediaBrowserServiceCompat(), PlaybackManager.Callba
 
         radioNotificationManager.reset()
 
-        castSessionManager.removeSessionManagerListener(castSessionManagerListener, CastSession::class.java)
+        castSessionManager?.removeSessionManagerListener(castSessionManagerListener!!, CastSession::class.java)
 
         compositeDisposable.clear()
 

@@ -15,6 +15,8 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.View.VISIBLE
 import com.google.android.gms.cast.framework.*
+import com.google.android.gms.common.ConnectionResult
+import com.google.android.gms.common.GoogleApiAvailability
 import com.jakewharton.rxbinding2.support.v7.widget.queryTextChanges
 import dagger.Lazy
 import dagger.android.DispatchingAndroidInjector
@@ -51,7 +53,7 @@ class RadioBrowserActivity : BaseActivity<RadioBrowserPresenter>(),
 
     private var mediaRouteMenuItem: MenuItem? = null
 
-    private lateinit var castContext: CastContext
+    private var castContext: CastContext? = null
     private val castStateListener = CastStateListener {
         if (it != CastState.NO_DEVICES_AVAILABLE) {
             showCastOverlay()
@@ -86,7 +88,9 @@ class RadioBrowserActivity : BaseActivity<RadioBrowserPresenter>(),
 
         query = savedInstanceState?.getString(BUNDLE_QUERY, null)
 
-        castContext = CastContext.getSharedInstance(this)
+        if (GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(this) == ConnectionResult.SUCCESS) {
+            castContext = CastContext.getSharedInstance(this)
+        }
 
         presenter.onAttachView(this)
         presenter.connect()
@@ -101,11 +105,11 @@ class RadioBrowserActivity : BaseActivity<RadioBrowserPresenter>(),
     override fun onResume() {
         super.onResume()
 
-        castContext.addCastStateListener(castStateListener)
+        castContext?.addCastStateListener(castStateListener)
     }
 
     override fun onPause() {
-        castContext.removeCastStateListener(castStateListener)
+        castContext?.removeCastStateListener(castStateListener)
 
         handler.removeCallbacks(handlerCallbacks)
 
@@ -123,7 +127,9 @@ class RadioBrowserActivity : BaseActivity<RadioBrowserPresenter>(),
 
         menuInflater.inflate(R.menu.activity_radio_browser, menu)
 
-        mediaRouteMenuItem = CastButtonFactory.setUpMediaRouteButton(applicationContext, menu, R.id.action_media_route)
+        if (castContext != null) {
+            mediaRouteMenuItem = CastButtonFactory.setUpMediaRouteButton(applicationContext, menu, R.id.action_media_route)
+        }
 
         val searchItem = menu.findItem(R.id.action_search)
         val searchView = searchItem.actionView as SearchView
