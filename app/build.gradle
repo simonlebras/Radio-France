@@ -1,45 +1,79 @@
+ext {
+    ci = System.getenv('CI') == 'true'
+}
+
 apply plugin: 'com.android.application'
+
+apply plugin: 'io.fabric'
+
 apply plugin: 'kotlin-kapt'
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
+
+apply plugin: 'com.getkeepsafe.dexcount'
+dexcount {
+    runOnEachPackage = ci
+}
+
+apply plugin: 'com.diffplug.gradle.spotless'
+spotless {
+    kotlin {
+        target '**/*.kt'
+        ktlint(versions.ktlint)
+    }
+}
+
 apply from: "$project.rootDir/tools/git-version.gradle"
 
 def keystoreProperties = new Properties()
 keystoreProperties.load(new FileInputStream(rootProject.file("keystore.properties")))
 
 android {
-    compileSdkVersion rootProject.compileSdkVersion
-    buildToolsVersion rootProject.buildToolsVersion
+    compileSdkVersion versions.compileSdk
+    buildToolsVersion versions.buildTools
 
     defaultConfig {
-        applicationId "fr.simonlebras.radiofrance"
+        applicationId 'fr.simonlebras.radiofrance'
         versionCode gitVersionCode
         versionName gitVersionName
-        minSdkVersion rootProject.minSdkVersion
-        targetSdkVersion rootProject.targetSdkVersion
-        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+        minSdkVersion versions.minSdk
+        targetSdkVersion versions.targetSdk
+        testInstrumentationRunner 'android.support.test.runner.AndroidJUnitRunner'
         vectorDrawables.useSupportLibrary = true
-        buildConfigField "String", "FIREBASE_ENDPOINT", "\"https://radio-france-77818.firebaseapp.com\""
-    }
-
-    dexOptions {
-        preDexLibraries true
+        buildConfigField 'String', 'FIREBASE_ENDPOINT', "\"${firebaseEndpoint}\""
+        resConfigs 'fr'
     }
 
     aaptOptions {
         cruncherEnabled = false
     }
 
-    kapt {
-        generateStubs = true
+    dexOptions {
+        preDexLibraries !ci
+    }
+
+    sourceSets {
+        main.java.srcDirs += 'src/main/kotlin'
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
     }
 
     signingConfigs {
+        debug {
+            storeFile rootProject.file('signing/debug.keystore')
+            storePassword 'radiofrance'
+            keyAlias 'debugkey'
+            keyPassword 'radiofrance'
+        }
+
         release {
-            storeFile file(keystoreProperties['storeFile'])
-            storePassword keystoreProperties['storePassword']
-            keyAlias keystoreProperties['keyAlias']
-            keyPassword keystoreProperties['keyPassword']
+            storeFile rootProject.file('signing/release.keystore')
+            storePassword keystoreProperties['releaseStorePassword']
+            keyAlias 'releasekey'
+            keyPassword keystoreProperties['releaseKeyPassword']
         }
     }
 
@@ -51,12 +85,18 @@ android {
 
         dev {
             dimension 'environment'
-
             versionCode gitVersionCodeTime
+            resConfigs 'xhdpi'
         }
     }
 
     buildTypes {
+        debug {
+            ext.enableCrashlytics = false
+            applicationIdSuffix '.debug'
+            signingConfig signingConfigs.debug
+        }
+
         release {
             minifyEnabled true
             shrinkResources true
@@ -64,72 +104,63 @@ android {
             signingConfig signingConfigs.release
         }
     }
-
-    sourceSets {
-        main.java.srcDirs += 'src/main/kotlin'
-    }
-
-    variantFilter { variant ->
-        if (variant.buildType.name == 'release') {
-            variant.flavors.each { flavor ->
-                if (flavor.name == 'dev') {
-                    variant.ignore = true
-                }
-            }
-        }
-    }
 }
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 
-    implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:$versions.kotlin"
 
-    implementation "com.android.support:appcompat-v7:$rootProject.supportLibraryVersion"
-    implementation "com.android.support:recyclerview-v7:$rootProject.supportLibraryVersion"
-    implementation "com.android.support:cardview-v7:$rootProject.supportLibraryVersion"
-    implementation "com.android.support:design:$rootProject.supportLibraryVersion"
-    implementation "com.android.support:mediarouter-v7:$rootProject.supportLibraryVersion"
-    implementation "com.android.support.constraint:constraint-layout:$rootProject.constraintLayoutVersion"
+    implementation "com.android.support:appcompat-v7:$versions.supportLibrary"
+    implementation "com.android.support:recyclerview-v7:$versions.supportLibrary"
+    implementation "com.android.support:cardview-v7:$versions.supportLibrary"
+    implementation "com.android.support:design:$versions.supportLibrary"
+    implementation "com.android.support:mediarouter-v7:$versions.supportLibrary"
+    implementation "com.android.support.constraint:constraint-layout:$versions.constraintLayout"
 
-    implementation "com.google.android.gms:play-services-cast-framework:$rootProject.playServicesVersion"
-    releaseImplementation "com.google.firebase:firebase-crash:$rootProject.playServicesVersion"
+    implementation "com.google.android.gms:play-services-cast-framework:$versions.playServices"
 
-    implementation "com.google.dagger:dagger:$rootProject.daggerVersion"
-    kapt "com.google.dagger:dagger-compiler:$rootProject.daggerVersion"
-    implementation "com.google.dagger:dagger-android-support:$rootProject.daggerVersion"
-    kapt "com.google.dagger:dagger-android-processor:$rootProject.daggerVersion"
+    implementation("com.crashlytics.sdk.android:crashlytics:$versions.crashlytics") {
+        transitive = true
+    }
+    implementation "com.google.firebase:firebase-core:$versions.playServices"
 
-    implementation "io.reactivex.rxjava2:rxjava:$rootProject.rxJavaVersion"
-    implementation "io.reactivex.rxjava2:rxandroid:$rootProject.rxAndroidVersion"
-    implementation "com.jakewharton.rxbinding2:rxbinding:$rootProject.rxBindingVersion"
-    implementation "com.jakewharton.rxbinding2:rxbinding-appcompat-v7:$rootProject.rxBindingVersion"
-    implementation "com.jakewharton.rxbinding2:rxbinding-appcompat-v7-kotlin:$rootProject.rxBindingVersion"
+    implementation "com.google.dagger:dagger:$versions.dagger"
+    kapt "com.google.dagger:dagger-compiler:$versions.dagger"
+    implementation "com.google.dagger:dagger-android-support:$versions.dagger"
+    kapt "com.google.dagger:dagger-android-processor:$versions.dagger"
 
-    implementation "com.squareup.moshi:moshi:$rootProject.moshiVersion"
-    implementation "com.squareup.moshi:moshi-kotlin:$rootProject.moshiVersion"
+    implementation "io.reactivex.rxjava2:rxjava:$versions.rxJava"
+    implementation "io.reactivex.rxjava2:rxandroid:$versions.rxAndroid"
+    implementation "com.jakewharton.rxbinding2:rxbinding:$versions.rxBinding"
+    implementation "com.jakewharton.rxbinding2:rxbinding-appcompat-v7:$versions.rxBinding"
+    implementation "com.jakewharton.rxbinding2:rxbinding-appcompat-v7-kotlin:$versions.rxBinding"
 
-    implementation "com.squareup.okhttp3:okhttp:$rootProject.okHttpVersion"
-    implementation "com.squareup.okhttp3:logging-interceptor:$rootProject.okHttpVersion"
+    implementation "com.squareup.moshi:moshi:$versions.moshi"
+    implementation "com.squareup.moshi:moshi-kotlin:$versions.moshi"
 
-    implementation "com.squareup.retrofit2:retrofit:$rootProject.retrofitVersion"
-    implementation "com.squareup.retrofit2:adapter-rxjava2:$rootProject.retrofitVersion"
-    implementation "com.squareup.retrofit2:converter-moshi:$rootProject.retrofitVersion"
+    implementation "com.squareup.okhttp3:okhttp:$versions.okHttp"
+    implementation "com.squareup.okhttp3:logging-interceptor:$versions.okHttp"
 
-    implementation "com.github.bumptech.glide:glide:$rootProject.glideVersion"
-    kapt "com.github.bumptech.glide:compiler:$rootProject.glideVersion"
-    implementation "com.github.bumptech.glide:okhttp3-integration:$rootProject.glideVersion"
-    implementation("com.github.bumptech.glide:recyclerview-integration:$rootProject.glideVersion") {
+    implementation "com.squareup.retrofit2:retrofit:$versions.retrofit"
+    implementation "com.squareup.retrofit2:adapter-rxjava2:$versions.retrofit"
+    implementation "com.squareup.retrofit2:converter-moshi:$versions.retrofit"
+
+    implementation "com.github.bumptech.glide:glide:$versions.glide"
+    kapt "com.github.bumptech.glide:compiler:$versions.glide"
+    implementation "com.github.bumptech.glide:okhttp3-integration:$versions.glide"
+    implementation("com.github.bumptech.glide:recyclerview-integration:$versions.glide") {
         transitive = false
     }
 
-    implementation "com.google.android.exoplayer:exoplayer-core:$rootProject.exoPlayerVersion"
+    implementation "com.google.android.exoplayer:exoplayer-core:$versions.exoPlayer"
 
-    implementation "com.jakewharton.timber:timber:$rootProject.timberVersion"
+    implementation "com.jakewharton.timber:timber:$versions.timber"
 
-    debugImplementation "com.squareup.leakcanary:leakcanary-android:$rootProject.leakCanaryVersion"
-    releaseImplementation "com.squareup.leakcanary:leakcanary-android-no-op:$rootProject.leakCanaryVersion"
-    testImplementation "com.squareup.leakcanary:leakcanary-android-no-op:$rootProject.leakCanaryVersion"
+    debugImplementation "com.squareup.leakcanary:leakcanary-android:$versions.leakCanary"
+    releaseImplementation "com.squareup.leakcanary:leakcanary-android-no-op:$versions.leakCanary"
+
+    debugImplementation "nl.littlerobots.rxlint:rxlint:${versions.rxlint}"
 }
 
 apply plugin: 'com.google.gms.google-services'

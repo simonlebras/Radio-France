@@ -1,39 +1,54 @@
 buildscript {
-    ext.kotlinVersion = '1.1.60'
+    ext.versions = [
+            kotlin: '1.1.60',
+            compileSdk: 27,
+            buildTools: '27.0.1',
+            minSdk: 19,
+            targetSdk: 27,
+            supportLibrary: '27.0.1',
+            constraintLayout: '1.1.0-beta3',
+            playServices: '11.6.0',
+            dagger: '2.13',
+            rxJava: '2.1.6',
+            rxAndroid: '2.0.1',
+            rxBinding: '2.0.0',
+            moshi: '1.5.0',
+            okHttp: '3.9.0',
+            retrofit: '2.3.0',
+            glide: '4.3.1',
+            exoPlayer: 'r2.5.4',
+            timber: '4.6.0',
+            leakCanary: '1.5.4',
+            rxlint: '1.6',
+            ktlint: '0.12.1',
+            crashlytics: '2.7.1@aar',
+    ]
 
     repositories {
         jcenter()
         google()
+        maven {
+            url 'https://maven.fabric.io/public'
+        }
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:3.0.0'
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
-        classpath "org.jetbrains.kotlin:kotlin-android-extensions:$kotlinVersion"
+        classpath 'com.android.tools.build:gradle:3.0.1'
+
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:${versions.kotlin}"
+        classpath "org.jetbrains.kotlin:kotlin-android-extensions:${versions.kotlin}"
+
+        classpath 'com.getkeepsafe.dexcount:dexcount-gradle-plugin:0.8.1'
+
+        classpath 'io.fabric.tools:gradle:1.24.4'
+
         classpath 'com.google.gms:google-services:3.1.1'
     }
 }
 
-ext {
-    compileSdkVersion = 27
-    buildToolsVersion = '27.0.1'
-    minSdkVersion = 19
-    targetSdkVersion = 27
-
-    supportLibraryVersion = '27.0.1'
-    constraintLayoutVersion = '1.1.0-beta3'
-    playServicesVersion = '11.6.0'
-    daggerVersion = '2.13'
-    rxJavaVersion = '2.1.6'
-    rxAndroidVersion = '2.0.1'
-    rxBindingVersion = '2.0.0'
-    moshiVersion = '1.5.0'
-    okHttpVersion = '3.9.0'
-    retrofitVersion = '2.3.0'
-    glideVersion = '4.3.1'
-    exoPlayerVersion = 'r2.5.4'
-    timberVersion = '4.6.0'
-    leakCanaryVersion = '1.5.4'
+plugins {
+    id 'com.diffplug.gradle.spotless' version '3.6.0'
+    id 'com.github.ben-manes.versions' version '0.17.0'
 }
 
 allprojects {

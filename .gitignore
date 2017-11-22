@@ -8,4 +8,4 @@
 /captures
 .externalNativeBuild
 app/google-services.json
-keystore.properties
+signing/release.keystore
