@@ -1,6 +1,6 @@
 buildscript {
     ext.versions = [
-            kotlin: '1.1.60',
+            kotlin: '1.1.61',
             compileSdk: 27,
             buildTools: '27.0.1',
             minSdk: 19,
