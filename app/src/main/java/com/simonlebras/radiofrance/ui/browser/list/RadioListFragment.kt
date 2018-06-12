@@ -6,7 +6,6 @@ import android.support.design.widget.Snackbar
 import android.support.v4.content.ContextCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import android.support.v4.media.session.PlaybackStateCompat.STATE_ERROR
-import android.support.v7.util.DiffUtil
 import android.support.v7.widget.DefaultItemAnimator
 import android.support.v7.widget.LinearLayoutManager
 import android.view.LayoutInflater
@@ -14,11 +13,11 @@ import android.view.View
 import android.view.View.GONE
 import android.view.View.VISIBLE
 import android.view.ViewGroup
-import dagger.Lazy
 import com.simonlebras.radiofrance.R
 import com.simonlebras.radiofrance.models.Radio
 import com.simonlebras.radiofrance.ui.base.BaseActivity
 import com.simonlebras.radiofrance.ui.base.BaseFragment
+import dagger.Lazy
 import kotlinx.android.synthetic.main.fragment_radio_list.*
 import kotlinx.android.synthetic.main.fragment_radio_list.view.*
 import javax.inject.Inject
@@ -30,7 +29,8 @@ class RadioListFragment : BaseFragment<RadioListPresenter>(), RadioListPresenter
         fun newInstance() = RadioListFragment()
     }
 
-    @Inject lateinit var presenterProvider: Lazy<RadioListPresenter>
+    @Inject
+    lateinit var presenterProvider: Lazy<RadioListPresenter>
 
     private lateinit var adapter: RadioListAdapter
 
@@ -41,13 +41,16 @@ class RadioListFragment : BaseFragment<RadioListPresenter>(), RadioListPresenter
 
         adapter = RadioListAdapter(this)
 
-        view.recycler_view.adapter = adapter
-        view.recycler_view.itemAnimator = DefaultItemAnimator()
-        view.recycler_view.setHasFixedSize(true)
+        view.recycler_view.let {
+            it.adapter = adapter
+            it.itemAnimator = DefaultItemAnimator()
+            it.setHasFixedSize(true)
 
-        view.recycler_view.layoutManager = LinearLayoutManager(context)
+            it.layoutManager = LinearLayoutManager(context)
+        }
 
-        val width = resources.getDimensionPixelSize(R.dimen.list_divider_width).toFloat()
+        val width = resources.getDimensionPixelSize(R.dimen.list_divider_width)
+                .toFloat()
         val decoration = DividerItemDecoration(ContextCompat.getColor(context!!, R.color.colorDivider), width)
         view.recycler_view.addItemDecoration(decoration)
 
@@ -83,12 +86,9 @@ class RadioListFragment : BaseFragment<RadioListPresenter>(), RadioListPresenter
     }
 
     override fun showRadios(radios: List<Radio>) {
-        val diffResult = DiffUtil.calculateDiff(RadioListDiffCallback(adapter.radios, radios))
-
         showRecyclerView()
 
-        adapter.radios = radios
-        diffResult.dispatchUpdatesTo(adapter)
+        adapter.submitList(radios)
 
         recycler_view.scrollToPosition(0)
     }
@@ -102,8 +102,7 @@ class RadioListFragment : BaseFragment<RadioListPresenter>(), RadioListPresenter
     override fun showSearchError() {
         showNoResultView()
 
-        adapter.radios = emptyList()
-        adapter.notifyDataSetChanged()
+        adapter.submitList(emptyList())
     }
 
     override fun onPlaybackStateChanged(playbackState: PlaybackStateCompat) {
