@@ -1,63 +1,45 @@
 buildscript {
-    ext.versions = [
-            kotlin: '1.1.61',
-            compileSdk: 27,
-            buildTools: '27.0.1',
-            minSdk: 19,
-            targetSdk: 27,
-            supportLibrary: '27.0.1',
-            constraintLayout: '1.1.0-beta3',
-            playServices: '11.6.0',
-            dagger: '2.13',
-            rxJava: '2.1.6',
-            rxAndroid: '2.0.1',
-            rxBinding: '2.0.0',
-            moshi: '1.5.0',
-            okHttp: '3.9.0',
-            retrofit: '2.3.0',
-            glide: '4.3.1',
-            exoPlayer: 'r2.5.4',
-            timber: '4.6.0',
-            leakCanary: '1.5.4',
-            rxlint: '1.6',
-            ktlint: '0.12.1',
-            crashlytics: '2.7.1@aar',
-    ]
-
     repositories {
-        jcenter()
         google()
+        jcenter()
         maven {
             url 'https://maven.fabric.io/public'
         }
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:3.0.1'
+        classpath "com.android.tools.build:gradle:${Versions.androidPlugin}"
 
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:${versions.kotlin}"
-        classpath "org.jetbrains.kotlin:kotlin-android-extensions:${versions.kotlin}"
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:${Versions.kotlin}"
 
-        classpath 'com.getkeepsafe.dexcount:dexcount-gradle-plugin:0.8.1'
+        classpath 'com.getkeepsafe.dexcount:dexcount-gradle-plugin:0.8.2'
 
-        classpath 'io.fabric.tools:gradle:1.24.4'
+        classpath 'io.fabric.tools:gradle:1.25.4'
 
-        classpath 'com.google.gms:google-services:3.1.1'
+        classpath 'com.google.gms:google-services:4.0.1'
+
+        classpath 'com.google.firebase:firebase-plugins:1.1.5'
     }
 }
 
 plugins {
-    id 'com.diffplug.gradle.spotless' version '3.6.0'
+    id 'com.diffplug.gradle.spotless' version '3.13.0'
     id 'com.github.ben-manes.versions' version '0.17.0'
 }
 
 allprojects {
     repositories {
-        jcenter()
         google()
+        jcenter()
     }
 }
 
-task clean(type: Delete) {
-    delete rootProject.buildDir
+subprojects {
+    apply plugin: 'com.diffplug.gradle.spotless'
+    spotless {
+        kotlin {
+            target '**/*.kt'
+            ktlint('0.23.1')
+        }
+    }
 }

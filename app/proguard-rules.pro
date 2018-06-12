@@ -3,7 +3,7 @@
 -keepattributes SourceFile,LineNumberTable
 
 # Models
--keepclassmembernames class fr.simonlebras.radiofrance.models.** { *; }
+-keepclassmembernames class com.simonlebras.radiofrance.models.** { *; }
 
 # Dagger
 -dontwarn com.google.errorprone.annotations.**
