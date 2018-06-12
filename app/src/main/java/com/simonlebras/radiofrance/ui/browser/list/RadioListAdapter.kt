@@ -8,14 +8,17 @@ import android.support.v7.widget.RecyclerView.NO_POSITION
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import com.bumptech.glide.ListPreloader
 import com.simonlebras.radiofrance.R
 import com.simonlebras.radiofrance.models.Radio
 import com.simonlebras.radiofrance.utils.GlideApp
 import kotlinx.android.synthetic.main.list_item_radio.view.*
 
+
 class RadioListAdapter(
         private val fragment: RadioListFragment
-) : ListAdapter<Radio, RadioListAdapter.ViewHolder>(DiffCallback()) {
+) : ListAdapter<Radio, RadioListAdapter.ViewHolder>(DiffCallback()),
+        ListPreloader.PreloadModelProvider<Radio> {
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val inflater = LayoutInflater.from(fragment.context)
 
@@ -26,12 +29,18 @@ class RadioListAdapter(
                             fragment.onRadioSelected(getItem(adapterPosition).id)
                         }
                     }
+
+                    fragment.preloadSizeProvider.setView(itemView.image_radio_logo)
                 }
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         holder.bindRadio(getItem(position))
     }
+
+    override fun getPreloadItems(position: Int) = listOf(getItem(position))
+
+    override fun getPreloadRequestBuilder(item: Radio) = GlideApp.with(fragment).load(item.logo)
 
     inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         fun bindRadio(radio: Radio) {

@@ -13,6 +13,8 @@ import android.view.View
 import android.view.View.GONE
 import android.view.View.VISIBLE
 import android.view.ViewGroup
+import com.bumptech.glide.integration.recyclerview.RecyclerViewPreloader
+import com.bumptech.glide.util.ViewPreloadSizeProvider
 import com.simonlebras.radiofrance.R
 import com.simonlebras.radiofrance.models.Radio
 import com.simonlebras.radiofrance.ui.base.BaseActivity
@@ -21,6 +23,7 @@ import dagger.Lazy
 import kotlinx.android.synthetic.main.fragment_radio_list.*
 import kotlinx.android.synthetic.main.fragment_radio_list.view.*
 import javax.inject.Inject
+
 
 class RadioListFragment : BaseFragment<RadioListPresenter>(), RadioListPresenter.View {
     companion object {
@@ -31,6 +34,8 @@ class RadioListFragment : BaseFragment<RadioListPresenter>(), RadioListPresenter
 
     @Inject
     lateinit var presenterProvider: Lazy<RadioListPresenter>
+
+    val preloadSizeProvider = ViewPreloadSizeProvider<Radio>()
 
     private lateinit var adapter: RadioListAdapter
 
@@ -47,6 +52,9 @@ class RadioListFragment : BaseFragment<RadioListPresenter>(), RadioListPresenter
             it.setHasFixedSize(true)
 
             it.layoutManager = LinearLayoutManager(context)
+
+            val preloader = RecyclerViewPreloader(this, adapter, preloadSizeProvider, 4)
+            it.addOnScrollListener(preloader)
         }
 
         val width = resources.getDimensionPixelSize(R.dimen.list_divider_width)
