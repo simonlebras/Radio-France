@@ -17,7 +17,7 @@ abstract class BaseFragment<T : BasePresenter<out BaseView>> : Fragment() {
     protected lateinit var presenter: T
     protected lateinit var uuid: UUID
 
-    private val compositeDisposable = CompositeDisposable()
+    protected val compositeDisposable = CompositeDisposable()
 
     override fun onAttach(context: Context) {
         AndroidSupportInjection.inject(this)

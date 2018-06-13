@@ -1,5 +1,7 @@
 package com.simonlebras.radiofrance.ui.browser.list
 
+import android.support.v4.media.MediaMetadataCompat
+import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import com.simonlebras.radiofrance.di.scopes.FragmentScope
 import com.simonlebras.radiofrance.models.Radio
@@ -21,7 +23,7 @@ class RadioListPresenter @Inject constructor(private val radioManager: RadioMana
     fun connect() {
         compositeDisposable.add(radioManager.connection
                                         .subscribe {
-                                            view?.onConnected()
+                                            view?.onConnected(it)
                                         })
     }
 
@@ -67,7 +69,9 @@ class RadioListPresenter @Inject constructor(private val radioManager: RadioMana
     fun subscribeToPlaybackUpdates() {
         compositeDisposable.add(radioManager.playbackUpdates
                                         .subscribe {
-                                            if (it is PlaybackStateCompat) {
+                                            if (it is MediaMetadataCompat) {
+                                                view?.onMetadataChanged(it)
+                                            } else if (it is PlaybackStateCompat) {
                                                 view?.onPlaybackStateChanged(it)
                                             }
                                         }
@@ -87,13 +91,15 @@ class RadioListPresenter @Inject constructor(private val radioManager: RadioMana
     }
 
     interface View : BaseView {
-        fun onConnected()
+        fun onConnected(mediaController: MediaControllerCompat)
 
         fun showRadios(radios: List<Radio>)
 
         fun showRefreshError()
 
         fun showSearchError()
+
+        fun onMetadataChanged(metadata: MediaMetadataCompat)
 
         fun onPlaybackStateChanged(playbackState: PlaybackStateCompat)
     }

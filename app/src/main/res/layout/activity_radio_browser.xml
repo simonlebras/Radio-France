@@ -5,10 +5,6 @@
     android:layout_height="match_parent"
     android:orientation="vertical">
 
-    <include
-        android:id="@+id/partial_toolbar"
-        layout="@layout/partial_toolbar" />
-
     <fragment
         android:id="@+id/fragment_radio_browser"
         android:name="com.simonlebras.radiofrance.ui.browser.list.RadioListFragment"
