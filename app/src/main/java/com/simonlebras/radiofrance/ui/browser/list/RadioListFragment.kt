@@ -26,8 +26,8 @@ import com.simonlebras.radiofrance.R
 import com.simonlebras.radiofrance.data.model.Radio
 import com.simonlebras.radiofrance.ui.base.BaseActivity
 import com.simonlebras.radiofrance.ui.base.BaseFragment
+import com.simonlebras.radiofrance.utils.AppSchedulers
 import dagger.Lazy
-import io.reactivex.android.schedulers.AndroidSchedulers
 import kotlinx.android.synthetic.main.fragment_radio_list.*
 import kotlinx.android.synthetic.main.partial_toolbar.*
 import java.util.concurrent.TimeUnit
@@ -42,6 +42,9 @@ class RadioListFragment : BaseFragment<RadioListPresenter>(), RadioListPresenter
 
         fun newInstance() = RadioListFragment()
     }
+
+    @Inject
+    lateinit var appSchedulers: AppSchedulers
 
     @Inject
     lateinit var presenterProvider: Lazy<RadioListPresenter>
@@ -154,7 +157,7 @@ class RadioListFragment : BaseFragment<RadioListPresenter>(), RadioListPresenter
                                         .map(CharSequence::toString)
                                         .map(String::trim)
                                         .distinctUntilChanged()
-                                        .observeOn(AndroidSchedulers.mainThread())
+                                        .observeOn(appSchedulers.main)
                                         .subscribe({
                                                        query = it
 

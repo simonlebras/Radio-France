@@ -3,20 +3,23 @@ package com.simonlebras.radiofrance.ui.browser.list
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.PlaybackStateCompat
-import com.simonlebras.radiofrance.di.scopes.FragmentScope
 import com.simonlebras.radiofrance.data.model.Radio
+import com.simonlebras.radiofrance.di.scopes.FragmentScope
 import com.simonlebras.radiofrance.ui.base.BasePresenter
 import com.simonlebras.radiofrance.ui.base.BaseView
 import com.simonlebras.radiofrance.ui.browser.manager.RadioManager
+import com.simonlebras.radiofrance.utils.AppSchedulers
 import io.reactivex.Observable
-import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.functions.BiFunction
 import io.reactivex.subjects.BehaviorSubject
 import io.reactivex.subjects.PublishSubject
 import javax.inject.Inject
 
 @FragmentScope
-class RadioListPresenter @Inject constructor(private val radioManager: RadioManager) : BasePresenter<RadioListPresenter.View>() {
+class RadioListPresenter @Inject constructor(
+        private val radioManager: RadioManager,
+        private val appSchedulers: AppSchedulers
+) : BasePresenter<RadioListPresenter.View>() {
     private var refreshSubject = PublishSubject.create<Boolean>()
     private var searchSubject = BehaviorSubject.create<String>()
 
@@ -47,7 +50,7 @@ class RadioListPresenter @Inject constructor(private val radioManager: RadioMana
                                                                 .toObservable()
                                                     }
                                         }
-                                        .observeOn(AndroidSchedulers.mainThread())
+                                        .observeOn(appSchedulers.main)
                                         .subscribe {
                                             val query = it.first
                                             val radios = it.second
