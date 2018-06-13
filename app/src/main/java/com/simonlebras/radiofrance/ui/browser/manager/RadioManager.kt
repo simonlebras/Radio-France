@@ -1,7 +1,7 @@
 package com.simonlebras.radiofrance.ui.browser.manager
 
 import android.support.v4.media.session.MediaControllerCompat
-import com.simonlebras.radiofrance.models.Radio
+import com.simonlebras.radiofrance.data.model.Radio
 import io.reactivex.Observable
 
 interface RadioManager {

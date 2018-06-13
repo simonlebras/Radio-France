@@ -14,7 +14,7 @@ import com.google.android.gms.cast.framework.media.RemoteMediaClient
 import com.google.android.gms.common.images.WebImage
 import com.simonlebras.radiofrance.BuildConfig
 import com.simonlebras.radiofrance.R
-import com.simonlebras.radiofrance.playback.data.RadioProvider
+import com.simonlebras.radiofrance.data.repository.RadioRepository
 import org.json.JSONException
 import org.json.JSONObject
 import timber.log.Timber
@@ -23,7 +23,7 @@ import javax.inject.Inject
 class CastPlayback @Inject constructor(
         private val context: Context,
         private val remoteMediaClient: RemoteMediaClient,
-        private val radioProvider: RadioProvider
+        private val radioRepository: RadioRepository
 ) : Playback, RemoteMediaClient.Listener {
     private companion object {
         const val MIME_TYPE_AUDIO_MPEG = "audio/mpeg"
@@ -102,7 +102,7 @@ class CastPlayback @Inject constructor(
 
     @Throws(JSONException::class)
     private fun loadRadio(radioId: String?, autoPlay: Boolean) {
-        val radio = radioProvider.metadata[radioId]
+        val radio = radioRepository.metadata[radioId]
                 ?: throw IllegalArgumentException("Invalid radioId " + radioId)
 
         currentRadioId = radioId

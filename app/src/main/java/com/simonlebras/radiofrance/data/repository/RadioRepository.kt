@@ -1,10 +1,10 @@
-package com.simonlebras.radiofrance.playback.data
+package com.simonlebras.radiofrance.data.repository
 
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaSessionCompat
 import io.reactivex.Observable
 
-interface RadioProvider {
+interface RadioRepository {
     var queue: List<MediaSessionCompat.QueueItem>
 
     var metadata: Map<String, MediaMetadataCompat>

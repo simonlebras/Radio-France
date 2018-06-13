@@ -7,7 +7,7 @@ import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import com.simonlebras.radiofrance.di.scopes.ActivityScope
-import com.simonlebras.radiofrance.models.Radio
+import com.simonlebras.radiofrance.data.model.Radio
 import com.simonlebras.radiofrance.playback.RadioPlaybackService
 import com.simonlebras.radiofrance.ui.browser.exceptions.SubscriptionException
 import com.simonlebras.radiofrance.ui.browser.mappers.RadioMapper
@@ -15,7 +15,6 @@ import com.simonlebras.radiofrance.utils.OnErrorRetryCache
 import io.reactivex.Observable
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.schedulers.Schedulers
-import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 @ActivityScope

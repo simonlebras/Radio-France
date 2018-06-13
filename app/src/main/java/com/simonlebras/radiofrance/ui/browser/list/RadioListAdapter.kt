@@ -10,7 +10,7 @@ import android.view.View
 import android.view.ViewGroup
 import com.bumptech.glide.ListPreloader
 import com.simonlebras.radiofrance.R
-import com.simonlebras.radiofrance.models.Radio
+import com.simonlebras.radiofrance.data.model.Radio
 import com.simonlebras.radiofrance.utils.GlideApp
 import kotlinx.android.synthetic.main.list_item_radio.view.*
 

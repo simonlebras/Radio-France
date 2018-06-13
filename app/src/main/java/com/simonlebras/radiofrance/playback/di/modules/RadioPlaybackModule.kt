@@ -16,8 +16,8 @@ import com.google.android.gms.cast.framework.SessionManager
 import com.google.android.gms.cast.framework.media.RemoteMediaClient
 import com.simonlebras.radiofrance.di.scopes.ServiceScope
 import com.simonlebras.radiofrance.playback.*
-import com.simonlebras.radiofrance.playback.data.RadioProvider
-import com.simonlebras.radiofrance.playback.data.RadioProviderImpl
+import com.simonlebras.radiofrance.data.repository.RadioRepository
+import com.simonlebras.radiofrance.data.repository.RadioRepositoryImpl
 import com.simonlebras.radiofrance.ui.browser.RadioBrowserActivity
 import dagger.Module
 import dagger.Provides
@@ -55,7 +55,7 @@ class RadioPlaybackModule {
 
     @Provides
     @ServiceScope
-    fun provideRadioProvider(radioProvider: RadioProviderImpl): RadioProvider = radioProvider
+    fun provideRadioProvider(radioProvider: RadioRepositoryImpl): RadioRepository = radioProvider
 
     @Provides
     @ServiceScope

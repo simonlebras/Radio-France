@@ -4,7 +4,7 @@ import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import com.simonlebras.radiofrance.di.scopes.FragmentScope
-import com.simonlebras.radiofrance.models.Radio
+import com.simonlebras.radiofrance.data.model.Radio
 import com.simonlebras.radiofrance.ui.base.BasePresenter
 import com.simonlebras.radiofrance.ui.base.BaseView
 import com.simonlebras.radiofrance.ui.browser.manager.RadioManager

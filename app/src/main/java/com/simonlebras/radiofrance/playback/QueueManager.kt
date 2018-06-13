@@ -5,11 +5,11 @@ import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaSessionCompat
 import com.simonlebras.radiofrance.R
 import com.simonlebras.radiofrance.di.scopes.ServiceScope
-import com.simonlebras.radiofrance.playback.data.RadioProvider
+import com.simonlebras.radiofrance.data.repository.RadioRepository
 import javax.inject.Inject
 
 @ServiceScope
-class QueueManager @Inject constructor(val context: Context, private val radioProvider: RadioProvider) {
+class QueueManager @Inject constructor(val context: Context, private val radioRepository: RadioRepository) {
     private companion object {
         private const val INVALID_INDEX = -1
     }
@@ -36,8 +36,8 @@ class QueueManager @Inject constructor(val context: Context, private val radioPr
     }
 
     fun setCurrentQueueItem(radioId: String?): Boolean {
-        if (queue.isEmpty() && radioProvider.queue.isNotEmpty()) {
-            queue = radioProvider.queue
+        if (queue.isEmpty() && radioRepository.queue.isNotEmpty()) {
+            queue = radioRepository.queue
             listener?.onQueueUpdated(context.getString(R.string.app_name), queue)
         }
 
@@ -70,13 +70,13 @@ class QueueManager @Inject constructor(val context: Context, private val radioPr
     }
 
     fun updateMetadata() {
-        if (queue.isEmpty() || radioProvider.metadata.isEmpty()) {
+        if (queue.isEmpty() || radioRepository.metadata.isEmpty()) {
             listener?.onMetadataRetrieveError()
             return
         }
 
         val radioId = currentRadio?.description?.mediaId
-        val metadata = radioProvider.metadata[radioId]
+        val metadata = radioRepository.metadata[radioId]
         if (metadata == null) {
             listener?.onMetadataRetrieveError()
             return

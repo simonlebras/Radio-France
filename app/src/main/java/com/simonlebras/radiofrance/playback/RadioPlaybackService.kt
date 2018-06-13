@@ -15,7 +15,7 @@ import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.GoogleApiAvailability
 import com.simonlebras.radiofrance.BuildConfig
 import com.simonlebras.radiofrance.R
-import com.simonlebras.radiofrance.playback.data.RadioProvider
+import com.simonlebras.radiofrance.data.repository.RadioRepository
 import com.simonlebras.radiofrance.playback.mappers.MediaItemMapper
 import dagger.Lazy
 import dagger.android.AndroidInjection
@@ -43,7 +43,7 @@ class RadioPlaybackService : MediaBrowserServiceCompat(), PlaybackManager.Callba
     @Inject
     lateinit var mediaSession: MediaSessionCompat
     @Inject
-    lateinit var radioProvider: RadioProvider
+    lateinit var radioRepository: RadioRepository
     @Inject
     lateinit var playbackManager: PlaybackManager
     @Inject
@@ -65,7 +65,7 @@ class RadioPlaybackService : MediaBrowserServiceCompat(), PlaybackManager.Callba
         super.onCreate()
 
         // Load the radios as soon as possible
-        compositeDisposable.add(radioProvider.radios
+        compositeDisposable.add(radioRepository.radios
                                         .firstOrError()
                                         .subscribeWith(object : DisposableSingleObserver<List<MediaMetadataCompat>>() {
                                             override fun onSuccess(value: List<MediaMetadataCompat>) {
@@ -120,7 +120,7 @@ class RadioPlaybackService : MediaBrowserServiceCompat(), PlaybackManager.Callba
 
         compositeDisposable.clear()
 
-        radioProvider.reset()
+        radioRepository.reset()
 
         mediaSession.release()
 
@@ -139,7 +139,7 @@ class RadioPlaybackService : MediaBrowserServiceCompat(), PlaybackManager.Callba
     override fun onLoadChildren(parentId: String, result: Result<List<MediaBrowserCompat.MediaItem>>) {
         result.detach()
 
-        compositeDisposable.add(radioProvider.radios
+        compositeDisposable.add(radioRepository.radios
                                         .firstOrError()
                                         .map {
                                             MediaItemMapper.transform(it)

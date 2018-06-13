@@ -1,10 +1,10 @@
-package com.simonlebras.radiofrance.playback.data
+package com.simonlebras.radiofrance.data.repository
 
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaSessionCompat
 import com.google.firebase.firestore.FirebaseFirestore
 import com.simonlebras.radiofrance.di.scopes.ServiceScope
-import com.simonlebras.radiofrance.models.Radio
+import com.simonlebras.radiofrance.data.model.Radio
 import com.simonlebras.radiofrance.playback.mappers.MediaMetadataMapper
 import com.simonlebras.radiofrance.playback.mappers.QueueItemMapper
 import com.simonlebras.radiofrance.utils.OnErrorRetryCache
@@ -14,7 +14,7 @@ import io.reactivex.schedulers.Schedulers
 import javax.inject.Inject
 
 @ServiceScope
-class RadioProviderImpl @Inject constructor() : RadioProvider {
+class RadioRepositoryImpl @Inject constructor() : RadioRepository {
     @Volatile
     override var queue: List<MediaSessionCompat.QueueItem> = emptyList()
 

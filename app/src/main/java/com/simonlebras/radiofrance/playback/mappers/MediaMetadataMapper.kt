@@ -1,7 +1,7 @@
 package com.simonlebras.radiofrance.playback.mappers
 
 import android.support.v4.media.MediaMetadataCompat
-import com.simonlebras.radiofrance.models.Radio
+import com.simonlebras.radiofrance.data.model.Radio
 
 object MediaMetadataMapper {
     private fun transform(radio: Radio): MediaMetadataCompat {

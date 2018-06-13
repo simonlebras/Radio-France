@@ -23,7 +23,7 @@ import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.GoogleApiAvailability
 import com.jakewharton.rxbinding2.support.v7.widget.queryTextChanges
 import com.simonlebras.radiofrance.R
-import com.simonlebras.radiofrance.models.Radio
+import com.simonlebras.radiofrance.data.model.Radio
 import com.simonlebras.radiofrance.ui.base.BaseActivity
 import com.simonlebras.radiofrance.ui.base.BaseFragment
 import dagger.Lazy
