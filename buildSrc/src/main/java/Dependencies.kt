@@ -10,7 +10,7 @@ object Versions {
 
     const val supportLibrary = "28.0.0-alpha3"
 
-    const val constraintLayout = "1.1.1"
+    const val constraintLayout = "1.1.2"
 
     const val lifecycle = "1.1.1"
 
