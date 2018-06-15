@@ -1,7 +1,7 @@
 object Versions {
-    const val androidPlugin = "3.2.0-alpha18"
+    const val androidPlugin = "3.1.3"
 
-    const val kotlin = "1.2.41"
+    const val kotlin = "1.2.50"
 
     const val compileSdk = 28
     const val buildTools = "28.0.0"
