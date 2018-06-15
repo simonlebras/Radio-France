@@ -14,6 +14,7 @@ import com.simonlebras.radiofrance.utils.AppSchedulers
 import io.reactivex.Observable
 import io.reactivex.Single
 import io.reactivex.disposables.CompositeDisposable
+import io.reactivex.subjects.PublishSubject
 import javax.inject.Inject
 
 class RadioManagerImpl @Inject constructor(
@@ -22,9 +23,24 @@ class RadioManagerImpl @Inject constructor(
 ) : RadioManager {
     private val compositeDisposable = CompositeDisposable()
 
-    private lateinit var mediaBrowser: MediaBrowserCompat
+    private val mediaBrowserConnectionCallback = object : MediaBrowserCompat.ConnectionCallback() {
+        override fun onConnected() {
+            mediaController = MediaControllerCompat(context, mediaBrowser.sessionToken)
+
+            connectionSubject.onNext(mediaController)
+        }
+    }
+
+    private var mediaBrowser: MediaBrowserCompat = MediaBrowserCompat(
+            context,
+            ComponentName(context, RadioPlaybackService::class.java),
+            mediaBrowserConnectionCallback,
+            null
+    )
 
     private lateinit var mediaController: MediaControllerCompat
+
+    private val connectionSubject = PublishSubject.create<MediaControllerCompat>()
 
     private val playbackUpdates by lazy(LazyThreadSafetyMode.NONE) {
         Observable
@@ -61,20 +77,16 @@ class RadioManagerImpl @Inject constructor(
                 }
     }
 
-    override fun connect(): Single<MediaControllerCompat> {
-        return Single.create<MediaControllerCompat> {
-            mediaBrowser = MediaBrowserCompat(context, ComponentName(context, RadioPlaybackService::class.java), object : MediaBrowserCompat.ConnectionCallback() {
-                override fun onConnected() {
-                    if (!it.isDisposed) {
-                        mediaController = MediaControllerCompat(context, mediaBrowser.sessionToken)
-
-                        it.onSuccess(mediaController)
+    override fun connect(): Observable<MediaControllerCompat> {
+        return connectionSubject
+                .doOnSubscribe {
+                    mediaBrowser.connect()
+                }
+                .doOnSubscribe {
+                    if (mediaBrowser.isConnected) {
+                        mediaBrowser.disconnect()
                     }
                 }
-            }, null)
-
-            mediaBrowser.connect()
-        }
     }
 
     override fun playbackStateUpdates(): Observable<PlaybackStateCompat> {
@@ -143,9 +155,5 @@ class RadioManagerImpl @Inject constructor(
 
     override fun clear() {
         compositeDisposable.dispose()
-
-        if (this::mediaBrowser.isInitialized && mediaBrowser.isConnected) {
-            mediaBrowser.disconnect()
-        }
     }
 }
