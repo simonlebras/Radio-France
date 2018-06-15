@@ -13,6 +13,7 @@ import android.net.Uri
 import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.PowerManager
+import android.support.v4.content.ContextCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat.*
 import com.google.android.exoplayer2.*
@@ -32,11 +33,10 @@ import com.google.android.exoplayer2.audio.AudioAttributes as ExoPlayerAudioAttr
 
 @TargetApi(Build.VERSION_CODES.O)
 class LocalPlayback @Inject constructor(
-        private val context: Context,
-        private val audioManager: AudioManager,
-        private val wifiLock: WifiManager.WifiLock,
-        private val wakeLock: PowerManager.WakeLock
-) : Playback, AudioManager.OnAudioFocusChangeListener, Player.EventListener {
+        private val context: Context
+) : Playback,
+        AudioManager.OnAudioFocusChangeListener,
+        Player.EventListener {
     private companion object {
         const val TIMEOUT = 5000 // in milliseconds
 
@@ -46,6 +46,9 @@ class LocalPlayback @Inject constructor(
 
         const val VOLUME_DUCK = .2f
         const val VOLUME_NORMAL = 1f
+
+        const val WIFI_LOCK_NAME = "radiofrance:playback-wifi-lock"
+        const val WAKE_LOCK_NAME = "radiofrance:playback-wake-lock"
     }
 
     override var currentRadioId: String? = null
@@ -89,6 +92,16 @@ class LocalPlayback @Inject constructor(
             }
         }
     }
+
+    private val audioManager = ContextCompat.getSystemService(context, AudioManager::class.java)!!
+
+    private val wifiLock = ContextCompat
+            .getSystemService(context.applicationContext, WifiManager::class.java)!!
+            .createWifiLock(WIFI_LOCK_NAME)
+
+    private val wakeLock = ContextCompat
+            .getSystemService(context, PowerManager::class.java)!!
+            .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, WAKE_LOCK_NAME)
 
     override fun play(item: MediaSessionCompat.QueueItem) {
         playOnFocusGain = true

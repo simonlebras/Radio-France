@@ -6,8 +6,8 @@ import android.support.v4.media.session.PlaybackStateCompat
 import android.support.v4.media.session.PlaybackStateCompat.*
 import com.simonlebras.radiofrance.BuildConfig
 import com.simonlebras.radiofrance.R
-import com.simonlebras.radiofrance.di.scopes.ServiceScope
-import com.simonlebras.radiofrance.playback.di.modules.RadioPlaybackModule.Companion.LOCAL_KEY
+import com.simonlebras.radiofrance.di.ServiceScope
+import com.simonlebras.radiofrance.di.RadioPlaybackModule.Companion.LOCAL_KEY
 import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Named

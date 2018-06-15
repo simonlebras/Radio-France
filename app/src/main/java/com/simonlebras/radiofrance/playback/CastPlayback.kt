@@ -7,6 +7,7 @@ import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat.*
 import android.text.TextUtils
 import com.google.android.gms.cast.MediaInfo
+import com.google.android.gms.cast.MediaLoadOptions
 import com.google.android.gms.cast.MediaMetadata
 import com.google.android.gms.cast.MediaStatus
 import com.google.android.gms.cast.framework.CastContext
@@ -22,13 +23,18 @@ import javax.inject.Inject
 
 class CastPlayback @Inject constructor(
         private val context: Context,
-        private val remoteMediaClient: RemoteMediaClient,
         private val radioRepository: RadioRepository
-) : Playback, RemoteMediaClient.Listener {
+) : RemoteMediaClient.Callback(),
+        Playback {
     private companion object {
         const val MIME_TYPE_AUDIO_MPEG = "audio/mpeg"
         const val ITEM_ID = "ITEM_ID"
     }
+
+    private val remoteMediaClient = CastContext.getSharedInstance(context.applicationContext)
+            .sessionManager
+            .currentCastSession
+            .remoteMediaClient
 
     override var currentRadioId: String? = null
 
@@ -71,11 +77,11 @@ class CastPlayback @Inject constructor(
     }
 
     override fun start() {
-        remoteMediaClient.addListener(this)
+        remoteMediaClient.registerCallback(this)
     }
 
     override fun stop(notify: Boolean) {
-        remoteMediaClient.removeListener(this)
+        remoteMediaClient.unregisterCallback(this)
 
         playbackState = STATE_STOPPED
 
@@ -103,7 +109,7 @@ class CastPlayback @Inject constructor(
     @Throws(JSONException::class)
     private fun loadRadio(radioId: String?, autoPlay: Boolean) {
         val radio = radioRepository.metadata[radioId]
-                ?: throw IllegalArgumentException("Invalid radioId " + radioId)
+                ?: throw IllegalArgumentException("Invalid radioId $radioId")
 
         currentRadioId = radioId
 
@@ -111,7 +117,12 @@ class CastPlayback @Inject constructor(
         customData.put(ITEM_ID, radioId)
 
         val mediaInfo = createMediaInfo(radio, customData)
-        remoteMediaClient.load(mediaInfo, autoPlay, 0, customData)
+        val mediaOptions = MediaLoadOptions.Builder()
+                .setAutoplay(autoPlay)
+                .setPlayPosition(0)
+                .setCustomData(customData)
+                .build()
+        remoteMediaClient.load(mediaInfo, mediaOptions)
     }
 
     private fun createMediaInfo(radio: MediaMetadataCompat, customData: JSONObject): MediaInfo {

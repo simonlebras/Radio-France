@@ -1,12 +1,14 @@
 package com.simonlebras.radiofrance.ui.browser.list
 
 import android.app.SearchManager
+import android.arch.lifecycle.Observer
+import android.arch.lifecycle.ViewModelProvider
+import android.arch.lifecycle.ViewModelProviders
 import android.os.Bundle
 import android.os.Handler
 import android.support.design.widget.Snackbar
 import android.support.v4.content.ContextCompat
 import android.support.v4.media.MediaMetadataCompat
-import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import android.support.v4.media.session.PlaybackStateCompat.STATE_ERROR
 import android.support.v7.app.AppCompatActivity
@@ -23,38 +25,39 @@ import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.GoogleApiAvailability
 import com.jakewharton.rxbinding2.support.v7.widget.queryTextChanges
 import com.simonlebras.radiofrance.R
-import com.simonlebras.radiofrance.data.model.Radio
-import com.simonlebras.radiofrance.ui.base.BaseActivity
-import com.simonlebras.radiofrance.ui.base.BaseFragment
+import com.simonlebras.radiofrance.data.models.Radio
+import com.simonlebras.radiofrance.data.models.Status
+import com.simonlebras.radiofrance.ui.MainViewModel
 import com.simonlebras.radiofrance.utils.AppSchedulers
-import dagger.Lazy
+import dagger.android.support.DaggerFragment
+import io.reactivex.disposables.Disposable
+import io.reactivex.observers.DisposableObserver
 import kotlinx.android.synthetic.main.fragment_radio_list.*
 import kotlinx.android.synthetic.main.partial_toolbar.*
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 
-class RadioListFragment : BaseFragment<RadioListPresenter>(), RadioListPresenter.View {
+class RadioListFragment : DaggerFragment() {
     companion object {
-        val TAG: String = RadioListFragment::class.java.simpleName
-
         const val BUNDLE_QUERY = "BUNDLE_QUERY"
-
-        fun newInstance() = RadioListFragment()
     }
 
     @Inject
     lateinit var appSchedulers: AppSchedulers
 
     @Inject
-    lateinit var presenterProvider: Lazy<RadioListPresenter>
+    lateinit var viewModelFactory: ViewModelProvider.Factory
 
     val preloadSizeProvider = ViewPreloadSizeProvider<Radio>()
+
+    private lateinit var viewModel: MainViewModel
 
     private lateinit var adapter: RadioListAdapter
 
     private var snackBar: Snackbar? = null
 
+    private lateinit var searchView: SearchView
     private var query: String? = null
 
     private var mediaRouteMenuItem: MenuItem? = null
@@ -123,12 +126,43 @@ class RadioListFragment : BaseFragment<RadioListPresenter>(), RadioListPresenter
 
             showProgressBar()
 
-            presenter.refresh()
+            viewModel.retryLoadRadios()
         }
-
-        presenter.onAttachView(this)
-        presenter.connect()
     }
+
+    override fun onActivityCreated(savedInstanceState: Bundle?) {
+        super.onActivityCreated(savedInstanceState)
+
+        viewModel = ViewModelProviders.of(requireActivity(), viewModelFactory)
+                .get(MainViewModel::class.java)
+
+        viewModel.connect()
+
+        viewModel.connection.observe(this, Observer {
+            viewModel.loadRadios()
+        })
+
+        viewModel.playbackState.observe(viewLifecycleOwner, Observer { onPlaybackStateChanged(it!!) })
+        viewModel.metadata.observe(viewLifecycleOwner, Observer { onMetadataChanged(it!!) })
+
+        viewModel.radios.observe(viewLifecycleOwner, Observer {
+            when (it!!.status) {
+                Status.LOADING -> showProgressBar()
+                Status.SUCCESS -> {
+                    it.data!!.let {
+                        if (it.isEmpty()) {
+                            showNoResultView()
+                        } else {
+                            showRadios(it)
+                        }
+                    }
+                }
+                Status.ERROR -> showRefreshError()
+            }
+        })
+    }
+
+    private lateinit var searchDisposable: Disposable
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
         super.onCreateOptionsMenu(menu, inflater)
@@ -140,29 +174,35 @@ class RadioListFragment : BaseFragment<RadioListPresenter>(), RadioListPresenter
         }
 
         val searchItem = menu.findItem(R.id.action_search)
-        val searchView = searchItem.actionView as SearchView
+        searchView = searchItem.actionView as SearchView
         val searchManager = ContextCompat.getSystemService(context!!, SearchManager::class.java)!!
         searchView.setSearchableInfo(searchManager.getSearchableInfo(activity!!.componentName))
 
-        if (!query.isNullOrBlank()) {
+        if (query != null) {
             searchItem.expandActionView()
             searchView.setQuery(query, false)
             searchView.clearFocus()
         }
 
-        compositeDisposable.add(searchView.queryTextChanges()
-                                        .skipInitialValue()
-                                        .throttleLast(100, TimeUnit.MILLISECONDS)
-                                        .debounce(200, TimeUnit.MILLISECONDS)
-                                        .map(CharSequence::toString)
-                                        .map(String::trim)
-                                        .distinctUntilChanged()
-                                        .observeOn(appSchedulers.main)
-                                        .subscribe({
-                                                       query = it
+        searchDisposable = searchView.queryTextChanges()
+                .skipInitialValue()
+                .throttleLast(100, TimeUnit.MILLISECONDS, appSchedulers.computation)
+                .debounce(200, TimeUnit.MILLISECONDS, appSchedulers.computation)
+                .map(CharSequence::toString)
+                .map(String::trim)
+                .distinctUntilChanged()
+                .observeOn(appSchedulers.main)
+                .subscribeWith(object : DisposableObserver<String>() {
+                    override fun onComplete() {
+                    }
 
-                                                       searchRadios(it)
-                                                   }))
+                    override fun onNext(query: String) {
+                        viewModel.searchRadios(query)
+                    }
+
+                    override fun onError(e: Throwable) {
+                    }
+                })
     }
 
     override fun onResume() {
@@ -180,27 +220,18 @@ class RadioListFragment : BaseFragment<RadioListPresenter>(), RadioListPresenter
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
-        outState.putString(BUNDLE_QUERY, query)
+        outState.putString(BUNDLE_QUERY, searchView.query.toString())
 
         super.onSaveInstanceState(outState)
     }
 
-    override fun restorePresenter() {
-        val presenterManager = (activity as BaseActivity<*>).presenterManager
-        presenter = presenterManager[uuid] as? RadioListPresenter ?: presenterProvider.get()
-        presenterManager[uuid] = presenter
+    override fun onDestroyView() {
+        searchDisposable.dispose()
+
+        super.onDestroyView()
     }
 
-    override fun onConnected(mediaController: MediaControllerCompat) {
-        updateToolbarTitle(mediaController.metadata?.description?.title?.toString())
-
-        presenter.subscribeToPlaybackUpdates()
-
-        presenter.subscribeToRefreshAndSearchEvents()
-        presenter.refresh()
-    }
-
-    override fun showRadios(radios: List<Radio>) {
+    private fun showRadios(radios: List<Radio>) {
         showRecyclerView()
 
         adapter.submitList(radios)
@@ -208,35 +239,31 @@ class RadioListFragment : BaseFragment<RadioListPresenter>(), RadioListPresenter
         recycler_view.scrollToPosition(0)
     }
 
-    override fun showRefreshError() {
+    private fun showRefreshError() {
         showEmptyView()
 
         showRetryAction()
     }
 
-    override fun showSearchError() {
+    fun showSearchError() {
         showNoResultView()
 
         adapter.submitList(emptyList())
     }
 
-    override fun onPlaybackStateChanged(playbackState: PlaybackStateCompat) {
+    private fun onPlaybackStateChanged(playbackState: PlaybackStateCompat) {
         if (playbackState.state == STATE_ERROR) {
             Snackbar.make(view!!, playbackState.errorMessage, Snackbar.LENGTH_LONG)
                     .show()
         }
     }
 
-    override fun onMetadataChanged(metadata: MediaMetadataCompat) {
+    private fun onMetadataChanged(metadata: MediaMetadataCompat) {
         updateToolbarTitle(metadata.description?.title?.toString())
     }
 
-    fun searchRadios(query: String) {
-        presenter.searchRadios(query)
-    }
-
     fun onRadioSelected(id: String) {
-        presenter.play(id)
+        viewModel.playFromId(id)
     }
 
     private fun showProgressBar() {
@@ -274,7 +301,7 @@ class RadioListFragment : BaseFragment<RadioListPresenter>(), RadioListPresenter
                 .setAction(R.string.action_retry) {
                     showProgressBar()
 
-                    presenter.refresh()
+                    viewModel.retryLoadRadios()
                 }
 
         snackBar!!.show()

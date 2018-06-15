@@ -1,14 +1,12 @@
-package com.simonlebras.radiofrance.ui.browser.di.modules
+package com.simonlebras.radiofrance.di
 
-import dagger.Binds
-import dagger.Module
-import com.simonlebras.radiofrance.di.scopes.ActivityScope
 import com.simonlebras.radiofrance.ui.browser.manager.RadioManager
 import com.simonlebras.radiofrance.ui.browser.manager.RadioManagerImpl
+import dagger.Binds
+import dagger.Module
 
 @Module
-abstract class RadioBrowserModule {
+abstract class MainActivityModule {
     @Binds
-    @ActivityScope
     abstract fun bindRadioManager(radioManager: RadioManagerImpl): RadioManager
 }

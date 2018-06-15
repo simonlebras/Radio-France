@@ -1,21 +1,21 @@
 package com.simonlebras.radiofrance.playback.mappers
 
-import android.net.Uri
 import android.support.v4.media.MediaDescriptionCompat
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaSessionCompat
 
-object QueueItemMapper {
+class QueueItemMapper {
     fun transform(metadata: MediaMetadataCompat, index: Long): MediaSessionCompat.QueueItem {
-        val mediaDescription = metadata.description
+        with(metadata.description) {
+            val description = MediaDescriptionCompat.Builder()
+                    .setMediaId(mediaId)
+                    .setTitle(title)
+                    .setDescription(description)
+                    .setMediaUri(mediaUri)
+                    .setIconUri(iconUri)
+                    .build()
 
-        val builder = MediaDescriptionCompat.Builder()
-                .setMediaId(mediaDescription.mediaId)
-                .setTitle(mediaDescription.title ?: "")
-                .setDescription(mediaDescription.description ?: "")
-                .setMediaUri(mediaDescription.mediaUri ?: Uri.EMPTY)
-                .setExtras(metadata.bundle)
-
-        return MediaSessionCompat.QueueItem(builder.build(), index)
+            return MediaSessionCompat.QueueItem(description, index)
+        }
     }
 }

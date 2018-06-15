@@ -1,4 +1,4 @@
-package com.simonlebras.radiofrance.data.model
+package com.simonlebras.radiofrance.data.models
 
 data class Radio(
         val id: String = "",

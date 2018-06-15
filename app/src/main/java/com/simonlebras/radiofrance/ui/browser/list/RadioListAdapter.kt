@@ -10,10 +10,9 @@ import android.view.View
 import android.view.ViewGroup
 import com.bumptech.glide.ListPreloader
 import com.simonlebras.radiofrance.R
-import com.simonlebras.radiofrance.data.model.Radio
+import com.simonlebras.radiofrance.data.models.Radio
 import com.simonlebras.radiofrance.utils.GlideApp
 import kotlinx.android.synthetic.main.list_item_radio.view.*
-
 
 class RadioListAdapter(
         private val fragment: RadioListFragment
@@ -59,9 +58,8 @@ class RadioListAdapter(
 
         private fun bindRadioLogo(logoUrl: String) {
             GlideApp.with(fragment)
-                    .asBitmap()
-                    .placeholder(ContextCompat.getDrawable(fragment.context!!, R.drawable.ic_radio_blue_40dp))
                     .load(logoUrl)
+                    .placeholder(ContextCompat.getDrawable(fragment.context!!, R.drawable.ic_radio_blue_40dp))
                     .into(itemView.image_radio_logo)
         }
     }

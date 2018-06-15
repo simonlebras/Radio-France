@@ -1,7 +1,7 @@
 package com.simonlebras.radiofrance
 
 import android.os.StrictMode
-import com.simonlebras.radiofrance.di.components.DaggerApplicationComponent
+import com.simonlebras.radiofrance.di.DaggerApplicationComponent
 import com.squareup.leakcanary.LeakCanary
 import dagger.android.support.DaggerApplication
 import timber.log.Timber

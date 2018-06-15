@@ -20,14 +20,12 @@ import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import android.support.v4.media.session.PlaybackStateCompat.*
-import com.bumptech.glide.load.engine.DiskCacheStrategy
-import com.bumptech.glide.request.Request
 import com.bumptech.glide.request.target.SimpleTarget
 import com.bumptech.glide.request.transition.Transition
 import com.simonlebras.radiofrance.BuildConfig
 import com.simonlebras.radiofrance.R
-import com.simonlebras.radiofrance.di.scopes.ServiceScope
-import com.simonlebras.radiofrance.ui.browser.RadioBrowserActivity
+import com.simonlebras.radiofrance.di.ServiceScope
+import com.simonlebras.radiofrance.ui.MainActivity
 import com.simonlebras.radiofrance.utils.GlideApp
 import timber.log.Timber
 import javax.inject.Inject
@@ -35,8 +33,7 @@ import javax.inject.Inject
 @ServiceScope
 class RadioNotificationManager @Inject constructor(
         private val context: Context,
-        private val service: RadioPlaybackService,
-        private val notificationManager: NotificationManagerCompat
+        private val service: RadioPlaybackService
 ) : BroadcastReceiver() {
     private companion object {
         const val CHANNEL_ID = "${BuildConfig.APPLICATION_ID}.MUSIC_CHANNEL_ID"
@@ -45,24 +42,45 @@ class RadioNotificationManager @Inject constructor(
 
         const val REQUEST_CODE_CONTROL = 100
 
-        const val ACTION_PLAY = "${BuildConfig.APPLICATION_ID}.play"
+        const val ACTION_PLAY = "${BuildConfig.APPLICATION_ID}.playFromId"
         const val ACTION_PAUSE = "${BuildConfig.APPLICATION_ID}.pause"
         const val ACTION_PREV = "${BuildConfig.APPLICATION_ID}.prev"
         const val ACTION_NEXT = "${BuildConfig.APPLICATION_ID}.next"
         const val ACTION_STOP_CASTING = "${BuildConfig.APPLICATION_ID}.stopCasting"
     }
 
-    private val packageName = service.packageName
-    private val pauseIntent = PendingIntent.getBroadcast(service, REQUEST_CODE_CONTROL,
-                                                         Intent(ACTION_PAUSE).setPackage(packageName), PendingIntent.FLAG_CANCEL_CURRENT)
-    private val playIntent = PendingIntent.getBroadcast(service, REQUEST_CODE_CONTROL,
-                                                        Intent(ACTION_PLAY).setPackage(packageName), PendingIntent.FLAG_CANCEL_CURRENT)
-    private val previousIntent = PendingIntent.getBroadcast(service, REQUEST_CODE_CONTROL,
-                                                            Intent(ACTION_PREV).setPackage(packageName), PendingIntent.FLAG_CANCEL_CURRENT)
-    private val nextIntent = PendingIntent.getBroadcast(service, REQUEST_CODE_CONTROL,
-                                                        Intent(ACTION_NEXT).setPackage(packageName), PendingIntent.FLAG_CANCEL_CURRENT)
-    private val stopCastingIntent = PendingIntent.getBroadcast(service, REQUEST_CODE_CONTROL,
-                                                               Intent(ACTION_STOP_CASTING).setPackage(packageName), PendingIntent.FLAG_CANCEL_CURRENT)
+    private val notificationManager = NotificationManagerCompat.from(context)
+
+    private val pauseIntent = PendingIntent.getBroadcast(
+            service,
+            REQUEST_CODE_CONTROL,
+            Intent(ACTION_PAUSE).setPackage(service.packageName),
+            PendingIntent.FLAG_CANCEL_CURRENT
+    )
+    private val playIntent = PendingIntent.getBroadcast(
+            service,
+            REQUEST_CODE_CONTROL,
+            Intent(ACTION_PLAY).setPackage(service.packageName),
+            PendingIntent.FLAG_CANCEL_CURRENT
+    )
+    private val previousIntent = PendingIntent.getBroadcast(
+            service,
+            REQUEST_CODE_CONTROL,
+            Intent(ACTION_PREV).setPackage(service.packageName),
+            PendingIntent.FLAG_CANCEL_CURRENT
+    )
+    private val nextIntent = PendingIntent.getBroadcast(
+            service,
+            REQUEST_CODE_CONTROL,
+            Intent(ACTION_NEXT).setPackage(service.packageName),
+            PendingIntent.FLAG_CANCEL_CURRENT
+    )
+    private val stopCastingIntent = PendingIntent.getBroadcast(
+            service,
+            REQUEST_CODE_CONTROL,
+            Intent(ACTION_STOP_CASTING).setPackage(service.packageName),
+            PendingIntent.FLAG_CANCEL_CURRENT
+    )
 
     private var sessionToken: MediaSessionCompat.Token? = null
     private var controller: MediaControllerCompat? = null
@@ -70,7 +88,6 @@ class RadioNotificationManager @Inject constructor(
     private var playbackState: PlaybackStateCompat? = null
     private var metadata: MediaMetadataCompat? = null
     private var started = false
-    private var request: Request? = null
     private val notificationSize = service.resources.getDimensionPixelSize(android.R.dimen.notification_large_icon_width)
     private lateinit var target: SimpleTarget<Bitmap>
     private val callback = object : MediaControllerCompat.Callback() {
@@ -109,22 +126,22 @@ class RadioNotificationManager @Inject constructor(
     }
 
     override fun onReceive(context: Context, intent: Intent) {
-        val action = intent.action
-        when (action) {
+        when (intent.action) {
             ACTION_PLAY -> transportControls.play()
             ACTION_PAUSE -> transportControls.pause()
             ACTION_PREV -> transportControls.skipToPrevious()
             ACTION_NEXT -> transportControls.skipToNext()
             ACTION_STOP_CASTING -> {
-                val stopIntent = Intent(context, RadioPlaybackService::class.java)
-                stopIntent.action = RadioPlaybackService.ACTION_CMD
-                stopIntent.putExtra(RadioPlaybackService.EXTRAS_CMD_NAME, RadioPlaybackService.CMD_STOP_CASTING)
+                val stopIntent = Intent(context, RadioPlaybackService::class.java).apply {
+                    action = RadioPlaybackService.ACTION_CMD
+                    putExtra(RadioPlaybackService.EXTRAS_CMD_NAME, RadioPlaybackService.CMD_STOP_CASTING)
+                }
 
                 service.startService(stopIntent)
             }
             else -> {
                 if (BuildConfig.DEBUG) {
-                    Timber.e("Unknown action: %s", action)
+                    Timber.e("Unknown action: %s", intent.action)
                 }
             }
         }
@@ -196,15 +213,18 @@ class RadioNotificationManager @Inject constructor(
     }
 
     fun reset() {
-        request?.clear()
+        GlideApp.with(context)
+                .clear(target)
 
         stopNotification()
     }
 
     private fun createContentIntent(): PendingIntent {
-        val contentIntent = Intent(service, RadioBrowserActivity::class.java)
-        contentIntent.flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
-        return PendingIntent.getActivity(service, RadioBrowserActivity.REQUEST_CODE_NOTIFICATION, contentIntent, PendingIntent.FLAG_CANCEL_CURRENT)
+        val contentIntent = Intent(service, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
+        }
+
+        return PendingIntent.getActivity(service, MainActivity.REQUEST_CODE_NOTIFICATION, contentIntent, PendingIntent.FLAG_CANCEL_CURRENT)
     }
 
     @TargetApi(Build.VERSION_CODES.O)
@@ -269,15 +289,12 @@ class RadioNotificationManager @Inject constructor(
             }
         }
 
-        request = GlideApp.with(context)
+        GlideApp.with(context)
                 .asBitmap()
-                .override(notificationSize, notificationSize)
-                .placeholder(R.drawable.ic_radio_blue_64dp)
-                .error(R.drawable.ic_radio_blue_64dp)
-                .diskCacheStrategy(DiskCacheStrategy.ALL)
                 .load(logoUrl)
+                .placeholder(R.drawable.ic_radio_blue_64dp)
+                .override(notificationSize, notificationSize)
                 .into(target)
-                .request
 
         return builder.build()
     }

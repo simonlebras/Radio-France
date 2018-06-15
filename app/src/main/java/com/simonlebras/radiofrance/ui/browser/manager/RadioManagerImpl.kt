@@ -6,63 +6,104 @@ import android.support.v4.media.MediaBrowserCompat
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.PlaybackStateCompat
-import com.simonlebras.radiofrance.data.model.Radio
-import com.simonlebras.radiofrance.di.scopes.ActivityScope
+import com.simonlebras.radiofrance.data.models.Radio
+import com.simonlebras.radiofrance.data.models.Resource
 import com.simonlebras.radiofrance.playback.RadioPlaybackService
-import com.simonlebras.radiofrance.ui.browser.exceptions.SubscriptionException
 import com.simonlebras.radiofrance.ui.browser.mappers.RadioMapper
 import com.simonlebras.radiofrance.utils.AppSchedulers
-import com.simonlebras.radiofrance.utils.OnErrorRetryCache
 import io.reactivex.Observable
+import io.reactivex.Single
 import io.reactivex.disposables.CompositeDisposable
 import javax.inject.Inject
 
-@ActivityScope
 class RadioManagerImpl @Inject constructor(
         private val context: Context,
         private val appSchedulers: AppSchedulers
 ) : RadioManager {
-    override val connection: Observable<MediaControllerCompat> by lazy(LazyThreadSafetyMode.NONE) {
-        Observable
-                .create<MediaControllerCompat> {
-                    mediaBrowser = MediaBrowserCompat(context, ComponentName(context, RadioPlaybackService::class.java), object : MediaBrowserCompat.ConnectionCallback() {
-                        override fun onConnected() {
-                            mediaController = MediaControllerCompat(context, mediaBrowser.sessionToken)
-                            it.onNext(mediaController)
-                        }
-                    }, null)
+    private val compositeDisposable = CompositeDisposable()
 
-                    it.setCancellable {
-                        mediaBrowser.disconnect()
+    private lateinit var mediaBrowser: MediaBrowserCompat
+
+    private lateinit var mediaController: MediaControllerCompat
+
+    private val playbackUpdates by lazy(LazyThreadSafetyMode.NONE) {
+        Observable
+                .create<Any> { emitter ->
+                    val callback = object : MediaControllerCompat.Callback() {
+                        override fun onPlaybackStateChanged(state: PlaybackStateCompat?) {
+                            if (!emitter.isDisposed && state != null) {
+                                emitter.onNext(state)
+                            }
+                        }
+
+                        override fun onMetadataChanged(metadata: MediaMetadataCompat?) {
+                            if (!emitter.isDisposed && metadata != null) {
+                                emitter.onNext(metadata)
+                            }
+                        }
                     }
 
-                    mediaBrowser.connect()
+                    emitter.setCancellable { mediaController.unregisterCallback(callback) }
+
+                    mediaController.playbackState?.let {
+                        emitter.onNext(it)
+                    }
+
+                    mediaController.metadata?.let {
+                        emitter.onNext(it)
+                    }
+
+                    mediaController.registerCallback(callback)
                 }
-                .replay(1)
-                .autoConnect(1) {
+                .publish()
+                .autoConnect(2) {
                     compositeDisposable.add(it)
                 }
     }
 
-    override val radios: Observable<List<Radio>> by lazy(LazyThreadSafetyMode.NONE) {
-        val source = Observable
+    override fun connect(): Single<MediaControllerCompat> {
+        return Single.create<MediaControllerCompat> {
+            mediaBrowser = MediaBrowserCompat(context, ComponentName(context, RadioPlaybackService::class.java), object : MediaBrowserCompat.ConnectionCallback() {
+                override fun onConnected() {
+                    if (!it.isDisposed) {
+                        mediaController = MediaControllerCompat(context, mediaBrowser.sessionToken)
+
+                        it.onSuccess(mediaController)
+                    }
+                }
+            }, null)
+
+            mediaBrowser.connect()
+        }
+    }
+
+    override fun playbackStateUpdates(): Observable<PlaybackStateCompat> {
+        return playbackUpdates.ofType(PlaybackStateCompat::class.java)
+    }
+
+    override fun metadataUpdates(): Observable<MediaMetadataCompat> {
+        return playbackUpdates.ofType(MediaMetadataCompat::class.java)
+    }
+
+    override fun loadRadios(): Single<Resource<List<Radio>>> {
+        return Single
                 .create<List<MediaBrowserCompat.MediaItem>> {
                     val root = mediaBrowser.root
+
                     mediaBrowser.unsubscribe(root)
                     mediaBrowser.subscribe(root, object : MediaBrowserCompat.SubscriptionCallback() {
                         override fun onChildrenLoaded(parentId: String, children: List<MediaBrowserCompat.MediaItem>) {
                             mediaBrowser.unsubscribe(root)
-                            if (children.isEmpty()) {
-                                it.onError(SubscriptionException(parentId))
-                                return
-                            }
 
-                            it.onNext(children)
-                            it.onComplete()
+                            if (!it.isDisposed) {
+                                it.onSuccess(children)
+                            }
                         }
 
                         override fun onError(parentId: String) {
-                            it.onError(SubscriptionException(parentId))
+                            if (!it.isDisposed) {
+                                it.onError(SubscriptionException(parentId))
+                            }
                         }
                     })
 
@@ -74,52 +115,22 @@ class RadioManagerImpl @Inject constructor(
                 }
                 .observeOn(appSchedulers.computation)
                 .map {
-                    RadioMapper.transform(it)
+                    RadioMapper().transform(it)
                 }
-
-        retryCache = OnErrorRetryCache(source)
-        retryCache!!.result
-    }
-
-    override val playbackUpdates: Observable<Any> by lazy(LazyThreadSafetyMode.NONE) {
-        Observable
-                .create<Any> {
-                    val callback = object : MediaControllerCompat.Callback() {
-                        override fun onPlaybackStateChanged(state: PlaybackStateCompat) {
-                            it.onNext(state)
-                        }
-
-                        override fun onMetadataChanged(metadata: MediaMetadataCompat?) {
-                            if (metadata != null) {
-                                it.onNext(metadata)
-                            }
-                        }
-                    }
-
-                    it.setCancellable {
-                        mediaController.unregisterCallback(callback)
-                    }
-
-                    mediaController.registerCallback(callback)
+                .map {
+                    Resource.success(it)
                 }
-                .share()
     }
 
-    private lateinit var mediaBrowser: MediaBrowserCompat
-    private lateinit var mediaController: MediaControllerCompat
-    private val compositeDisposable = CompositeDisposable()
-    private var retryCache: OnErrorRetryCache<List<Radio>>? = null
-
-    override fun play() {
-        mediaController.transportControls.play()
-    }
-
-    override fun play(id: String) {
+    override fun playFromId(id: String) {
         mediaController.transportControls.playFromMediaId(id, null)
     }
 
-    override fun pause() {
-        mediaController.transportControls.pause()
+    override fun togglePlayPause() {
+        when (mediaController.playbackState.state) {
+            PlaybackStateCompat.STATE_PAUSED, PlaybackStateCompat.STATE_STOPPED, PlaybackStateCompat.STATE_NONE -> mediaController.transportControls.play()
+            PlaybackStateCompat.STATE_PLAYING, PlaybackStateCompat.STATE_BUFFERING, PlaybackStateCompat.STATE_CONNECTING -> mediaController.transportControls.pause()
+        }
     }
 
     override fun skipToPrevious() {
@@ -130,8 +141,11 @@ class RadioManagerImpl @Inject constructor(
         mediaController.transportControls.skipToNext()
     }
 
-    override fun reset() {
-        retryCache?.dispose()
-        compositeDisposable.clear()
+    override fun clear() {
+        compositeDisposable.dispose()
+
+        if (this::mediaBrowser.isInitialized && mediaBrowser.isConnected) {
+            mediaBrowser.disconnect()
+        }
     }
 }

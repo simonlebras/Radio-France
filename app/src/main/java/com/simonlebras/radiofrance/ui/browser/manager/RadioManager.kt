@@ -1,25 +1,29 @@
 package com.simonlebras.radiofrance.ui.browser.manager
 
+import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaControllerCompat
-import com.simonlebras.radiofrance.data.model.Radio
+import android.support.v4.media.session.PlaybackStateCompat
+import com.simonlebras.radiofrance.data.models.Radio
+import com.simonlebras.radiofrance.data.models.Resource
 import io.reactivex.Observable
+import io.reactivex.Single
 
 interface RadioManager {
-    val connection: Observable<MediaControllerCompat>
+    fun connect(): Single<MediaControllerCompat>
 
-    val radios: Observable<List<Radio>>
+    fun playbackStateUpdates(): Observable<PlaybackStateCompat>
 
-    val playbackUpdates: Observable<Any>
+    fun metadataUpdates(): Observable<MediaMetadataCompat>
 
-    fun play()
+    fun loadRadios(): Single<Resource<List<Radio>>>
 
-    fun play(id: String)
+    fun playFromId(id: String)
 
-    fun pause()
+    fun togglePlayPause()
 
     fun skipToPrevious()
 
     fun skipToNext()
 
-    fun reset()
+    fun clear()
 }

@@ -4,7 +4,7 @@ import android.content.Context
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaSessionCompat
 import com.simonlebras.radiofrance.R
-import com.simonlebras.radiofrance.di.scopes.ServiceScope
+import com.simonlebras.radiofrance.di.ServiceScope
 import com.simonlebras.radiofrance.data.repository.RadioRepository
 import javax.inject.Inject
 

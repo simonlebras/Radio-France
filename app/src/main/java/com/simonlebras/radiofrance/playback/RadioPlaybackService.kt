@@ -142,7 +142,7 @@ class RadioPlaybackService : MediaBrowserServiceCompat(), PlaybackManager.Callba
         compositeDisposable.add(radioRepository.radios
                                         .firstOrError()
                                         .map {
-                                            MediaItemMapper.transform(it)
+                                            MediaItemMapper().transform(it)
                                         }
                                         .subscribeWith(object : DisposableSingleObserver<List<MediaBrowserCompat.MediaItem>>() {
                                             override fun onSuccess(mediaItems: List<MediaBrowserCompat.MediaItem>) {

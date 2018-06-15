@@ -13,7 +13,7 @@ import java.io.InputStream
 
 @Keep
 @GlideModule
-class CustomGlideModule : AppGlideModule() {
+class RadioFranceGlideModule : AppGlideModule() {
     override fun registerComponents(context: Context, glide: Glide, registry: Registry) {
         val okHttpClient = OkHttpClient.Builder()
                 .build()

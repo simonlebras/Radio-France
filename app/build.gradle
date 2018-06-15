@@ -135,12 +135,12 @@ dependencies {
 
     implementation Dependencies.okhttp
 
-    implementation (Dependencies.glide) {
+    implementation(Dependencies.glide) {
         exclude group: "com.android.support"
     }
     kapt Dependencies.glideCompiler
     implementation Dependencies.glideOkhttp
-    implementation (Dependencies.glideRecyclerview) {
+    implementation(Dependencies.glideRecyclerview) {
         transitive = false
     }
 

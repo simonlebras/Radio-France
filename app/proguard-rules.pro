@@ -2,8 +2,8 @@
 -renamesourcefileattribute SourceFile
 -keepattributes SourceFile,LineNumberTable
 
-# Model
--keepclassmembernames class com.simonlebras.radiofrance.data.model.Radio { *; }
+# Models
+-keepclassmembernames class com.simonlebras.radiofrance.data.models.Radio { *; }
 
 # Dagger
 -dontwarn com.google.errorprone.annotations.**

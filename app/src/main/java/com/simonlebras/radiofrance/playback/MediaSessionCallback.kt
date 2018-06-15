@@ -2,7 +2,7 @@ package com.simonlebras.radiofrance.playback
 
 import android.os.Bundle
 import android.support.v4.media.session.MediaSessionCompat
-import com.simonlebras.radiofrance.di.scopes.ServiceScope
+import com.simonlebras.radiofrance.di.ServiceScope
 import javax.inject.Inject
 
 @ServiceScope

@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="72dp"
     android:background="?attr/selectableItemBackground"
-    tools:context=".ui.browser.RadioBrowserActivity">
+    tools:context=".ui.MainActivity">
 
     <ImageView
         android:id="@+id/image_radio_logo"

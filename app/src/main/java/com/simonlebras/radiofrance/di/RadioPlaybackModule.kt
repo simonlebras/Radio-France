@@ -1,12 +1,8 @@
-package com.simonlebras.radiofrance.playback.di.modules
+package com.simonlebras.radiofrance.di
 
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.media.AudioManager
-import android.net.wifi.WifiManager
-import android.os.PowerManager
-import android.support.v4.app.NotificationManagerCompat
 import android.support.v4.media.session.MediaButtonReceiver
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v7.media.MediaRouter
@@ -14,11 +10,10 @@ import com.google.android.gms.cast.framework.CastContext
 import com.google.android.gms.cast.framework.CastSession
 import com.google.android.gms.cast.framework.SessionManager
 import com.google.android.gms.cast.framework.media.RemoteMediaClient
-import com.simonlebras.radiofrance.di.scopes.ServiceScope
-import com.simonlebras.radiofrance.playback.*
 import com.simonlebras.radiofrance.data.repository.RadioRepository
 import com.simonlebras.radiofrance.data.repository.RadioRepositoryImpl
-import com.simonlebras.radiofrance.ui.browser.RadioBrowserActivity
+import com.simonlebras.radiofrance.playback.*
+import com.simonlebras.radiofrance.ui.MainActivity
 import dagger.Module
 import dagger.Provides
 import javax.inject.Named
@@ -27,8 +22,6 @@ import javax.inject.Provider
 @Module
 class RadioPlaybackModule {
     companion object {
-        private const val LOCK_NAME = "radiofrance:playback-lock"
-
         const val LOCAL_KEY = "LOCAL_KEY"
         const val CAST_KEY = "CAST_KEY"
     }
@@ -46,40 +39,15 @@ class RadioPlaybackModule {
         var pendingIntent = PendingIntent.getBroadcast(context, 0, mediaButtonIntent, 0)
         mediaSession.setMediaButtonReceiver(pendingIntent)
 
-        val intent = Intent(context, RadioBrowserActivity::class.java)
-        pendingIntent = PendingIntent.getActivity(context, RadioBrowserActivity.REQUEST_CODE_SESSION, intent, PendingIntent.FLAG_UPDATE_CURRENT)
+        val intent = Intent(context, MainActivity::class.java)
+        pendingIntent = PendingIntent.getActivity(context, MainActivity.REQUEST_CODE_SESSION, intent, PendingIntent.FLAG_UPDATE_CURRENT)
         mediaSession.setSessionActivity(pendingIntent)
 
         return mediaSession
     }
 
     @Provides
-    @ServiceScope
     fun provideRadioProvider(radioProvider: RadioRepositoryImpl): RadioRepository = radioProvider
-
-    @Provides
-    @ServiceScope
-    fun provideNotificationManagerCompat(context: Context): NotificationManagerCompat = NotificationManagerCompat.from(context)
-
-    @Provides
-    fun provideAudioManager(context: Context) = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-
-    @Provides
-    fun provideWifiLock(context: Context): WifiManager.WifiLock {
-        val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
-        return wifiManager.createWifiLock(LOCK_NAME)
-    }
-
-    @Provides
-    fun provideWakeLock(context: Context): PowerManager.WakeLock {
-        val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
-        return powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, LOCK_NAME)
-    }
-
-    @Provides
-    @ServiceScope
-    fun provideMediaRouter(context: Context): MediaRouter =
-            MediaRouter.getInstance(context.applicationContext)
 
     @Provides
     @ServiceScope
@@ -89,13 +57,6 @@ class RadioPlaybackModule {
         castSessionManager.addSessionManagerListener(castSessionManagerListener, CastSession::class.java)
 
         return castSessionManager
-    }
-
-    @Provides
-    fun provideRemoteMediaClient(context: Context): RemoteMediaClient {
-        val castSession = CastContext.getSharedInstance(context.applicationContext)
-                .sessionManager.currentCastSession
-        return castSession.remoteMediaClient
     }
 
     @Provides

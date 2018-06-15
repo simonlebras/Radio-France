@@ -1,12 +1,12 @@
 package com.simonlebras.radiofrance.ui.browser.mappers
 
 import android.support.v4.media.MediaBrowserCompat
-import com.simonlebras.radiofrance.data.model.Radio
+import com.simonlebras.radiofrance.data.models.Radio
 
-object RadioMapper {
-    private fun transform(mediaItem: MediaBrowserCompat.MediaItem): Radio {
-        with(mediaItem.description) {
-            return Radio(
+class RadioMapper {
+    fun transform(mediaItems: Iterable<MediaBrowserCompat.MediaItem>) = mediaItems.map {
+        with(it.description) {
+            Radio(
                     mediaId!!,
                     title.toString(),
                     description.toString(),
@@ -15,6 +15,4 @@ object RadioMapper {
             )
         }
     }
-
-    fun transform(mediaItems: Iterable<MediaBrowserCompat.MediaItem>) = mediaItems.map { transform(it) }
 }
