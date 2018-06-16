@@ -8,11 +8,10 @@ import com.simonlebras.radiofrance.R
 
 @Keep
 class CastOptionsProvider : OptionsProvider {
-    override fun getCastOptions(context: Context): CastOptions {
-        return CastOptions.Builder()
-                .setReceiverApplicationId(context.getString(R.string.cast_application_id))
-                .build()
-    }
+    override fun getCastOptions(context: Context): CastOptions =
+        CastOptions.Builder()
+            .setReceiverApplicationId(context.getString(R.string.cast_application_id))
+            .build()
 
     override fun getAdditionalSessionProviders(context: Context?) = null
 }

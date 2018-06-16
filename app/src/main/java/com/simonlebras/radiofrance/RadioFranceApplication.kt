@@ -7,10 +7,10 @@ import dagger.android.support.DaggerApplication
 import timber.log.Timber
 
 class RadioFranceApplication : DaggerApplication() {
-    val component by lazy(LazyThreadSafetyMode.NONE) {
+    private val component by lazy(LazyThreadSafetyMode.NONE) {
         DaggerApplicationComponent.builder()
-                .context(this)
-                .build()
+            .context(this)
+            .build()
     }
 
     override fun onCreate() {
@@ -21,14 +21,18 @@ class RadioFranceApplication : DaggerApplication() {
 
             Timber.plant(Timber.DebugTree())
 
-            StrictMode.setThreadPolicy(StrictMode.ThreadPolicy.Builder()
-                                               .detectAll()
-                                               .penaltyLog()
-                                               .build())
-            StrictMode.setVmPolicy(StrictMode.VmPolicy.Builder()
-                                           .detectAll()
-                                           .penaltyLog()
-                                           .build())
+            StrictMode.setThreadPolicy(
+                StrictMode.ThreadPolicy.Builder()
+                    .detectAll()
+                    .penaltyLog()
+                    .build()
+            )
+            StrictMode.setVmPolicy(
+                StrictMode.VmPolicy.Builder()
+                    .detectAll()
+                    .penaltyLog()
+                    .build()
+            )
         }
     }
 
