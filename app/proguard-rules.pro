@@ -1,25 +1,22 @@
 -repackageclasses
+
 -renamesourcefileattribute SourceFile
 -keepattributes SourceFile,LineNumberTable
 
 # Models
 -keepclassmembernames class com.simonlebras.radiofrance.data.models.Radio { *; }
 
-# Dagger
--dontwarn com.google.errorprone.annotations.**
-
-# Retrofit
--dontnote retrofit2.Platform
--dontwarn retrofit2.Platform$Java8
--keepattributes Signature
--keepattributes Exceptions
-
-# Okio
--dontwarn okio.**
+# OkHttp
+-dontwarn okhttp3.internal.platform.*
 
 # Support Library
--keep class android.support.v7.app.MediaRouteActionProvider { *; }
--keep class android.support.v7.widget.SearchView { *; }
+-keep class android.support.v7.widget.SearchView {
+   public <init>(android.content.Context);
+   public <init>(android.content.Context, android.util.AttributeSet);
+}
+-keep class android.support.v7.app.MediaRouteActionProvider {
+    public <init>(android.content.Context);
+}
 
-# Timber
--assumenosideeffects class timber.log.Timber { *; }
+# Firestore
+-keep class io.grpc.** {*;}

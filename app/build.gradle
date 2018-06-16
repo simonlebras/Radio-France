@@ -92,6 +92,7 @@ android {
         }
 
         release {
+            ext.enableCrashlytics = true
             manifestPlaceholders = [crashlyticsEnabled: true]
             shrinkResources true
             minifyEnabled true
