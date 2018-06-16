@@ -12,6 +12,7 @@ import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import android.support.v4.media.session.PlaybackStateCompat.STATE_ERROR
 import android.support.v7.app.AppCompatActivity
+import android.support.v7.util.DiffUtil
 import android.support.v7.widget.DefaultItemAnimator
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.SearchView
@@ -30,13 +31,14 @@ import com.simonlebras.radiofrance.data.models.Status
 import com.simonlebras.radiofrance.ui.MainViewModel
 import com.simonlebras.radiofrance.utils.AppSchedulers
 import dagger.android.support.DaggerFragment
-import io.reactivex.disposables.Disposable
+import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.observers.DisposableObserver
+import io.reactivex.processors.PublishProcessor
+import io.reactivex.subscribers.DisposableSubscriber
 import kotlinx.android.synthetic.main.fragment_radio_list.*
 import kotlinx.android.synthetic.main.partial_toolbar.*
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
-
 
 class RadioListFragment : DaggerFragment() {
     companion object {
@@ -55,7 +57,9 @@ class RadioListFragment : DaggerFragment() {
 
     private lateinit var adapter: RadioListAdapter
 
-    private var snackBar: Snackbar? = null
+    private val compositeDisposable = CompositeDisposable()
+
+    private val radioSubject = PublishProcessor.create<List<Radio>>()
 
     private lateinit var searchView: SearchView
     private var query: String? = null
@@ -122,8 +126,6 @@ class RadioListFragment : DaggerFragment() {
         }
 
         button_list_refresh.setOnClickListener {
-            snackBar?.dismiss()
-
             showProgressBar()
 
             viewModel.retryLoadRadios()
@@ -145,24 +147,48 @@ class RadioListFragment : DaggerFragment() {
         viewModel.playbackState.observe(viewLifecycleOwner, Observer { onPlaybackStateChanged(it!!) })
         viewModel.metadata.observe(viewLifecycleOwner, Observer { onMetadataChanged(it!!) })
 
+        val initialValue = Pair<List<Radio>, DiffUtil.DiffResult?>(emptyList(), null)
+        val disposable = radioSubject
+                .scan(initialValue) { pair, next ->
+                    Pair(
+                            next,
+                            DiffUtil.calculateDiff(DiffUtilCallback(pair.first, next))
+                    )
+                }
+                .skip(1)
+                .subscribeOn(appSchedulers.computation)
+                .observeOn(appSchedulers.main)
+                .subscribeWith(object : DisposableSubscriber<Pair<List<Radio>, DiffUtil.DiffResult?>>() {
+                    override fun onComplete() {}
+
+                    override fun onNext(pair: Pair<List<Radio>, DiffUtil.DiffResult?>) {
+                        val (radios, diffResult) = pair
+
+                        if (radios.isEmpty()) {
+                            showNoResultView()
+                        } else {
+                            showRecyclerView()
+                        }
+
+                        adapter.radios = radios
+                        diffResult!!.dispatchUpdatesTo(adapter)
+
+                        recycler_view.scrollToPosition(0)
+                    }
+
+                    override fun onError(e: Throwable) {}
+                })
+
+        compositeDisposable.add(disposable)
+
         viewModel.radios.observe(viewLifecycleOwner, Observer {
             when (it!!.status) {
                 Status.LOADING -> showProgressBar()
-                Status.SUCCESS -> {
-                    it.data!!.let {
-                        if (it.isEmpty()) {
-                            showNoResultView()
-                        } else {
-                            showRadios(it)
-                        }
-                    }
-                }
-                Status.ERROR -> showRefreshError()
+                Status.SUCCESS -> radioSubject.offer(it.data)
+                Status.ERROR -> showEmptyView()
             }
         })
     }
-
-    private lateinit var searchDisposable: Disposable
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
         super.onCreateOptionsMenu(menu, inflater)
@@ -184,7 +210,7 @@ class RadioListFragment : DaggerFragment() {
             searchView.clearFocus()
         }
 
-        searchDisposable = searchView.queryTextChanges()
+        val disposable = searchView.queryTextChanges()
                 .skipInitialValue()
                 .throttleLast(100, TimeUnit.MILLISECONDS, appSchedulers.computation)
                 .debounce(200, TimeUnit.MILLISECONDS, appSchedulers.computation)
@@ -203,6 +229,8 @@ class RadioListFragment : DaggerFragment() {
                     override fun onError(e: Throwable) {
                     }
                 })
+
+        compositeDisposable.add(disposable)
     }
 
     override fun onResume() {
@@ -226,29 +254,9 @@ class RadioListFragment : DaggerFragment() {
     }
 
     override fun onDestroyView() {
-        searchDisposable.dispose()
+        compositeDisposable.clear()
 
         super.onDestroyView()
-    }
-
-    private fun showRadios(radios: List<Radio>) {
-        showRecyclerView()
-
-        adapter.submitList(radios)
-
-        recycler_view.scrollToPosition(0)
-    }
-
-    private fun showRefreshError() {
-        showEmptyView()
-
-        showRetryAction()
-    }
-
-    fun showSearchError() {
-        showNoResultView()
-
-        adapter.submitList(emptyList())
     }
 
     private fun onPlaybackStateChanged(playbackState: PlaybackStateCompat) {
@@ -294,17 +302,6 @@ class RadioListFragment : DaggerFragment() {
         recycler_view.visibility = GONE
         empty_view.visibility = GONE
         text_no_result.visibility = VISIBLE
-    }
-
-    private fun showRetryAction() {
-        snackBar = Snackbar.make(view!!, R.string.error_service_unavailable, Snackbar.LENGTH_LONG)
-                .setAction(R.string.action_retry) {
-                    showProgressBar()
-
-                    viewModel.retryLoadRadios()
-                }
-
-        snackBar!!.show()
     }
 
     private fun showCastOverlay() {

@@ -12,6 +12,7 @@ import com.simonlebras.radiofrance.utils.AppSchedulers
 import io.reactivex.Observable
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.observers.DisposableObserver
+import io.reactivex.observers.DisposableSingleObserver
 import io.reactivex.processors.PublishProcessor
 import io.reactivex.rxkotlin.Observables
 import io.reactivex.subjects.BehaviorSubject
@@ -56,10 +57,8 @@ class MainViewModel @Inject constructor(
             connectionStarted = true
 
             val disposable = radioManager.connect()
-                    .subscribeWith(object : DisposableObserver<MediaControllerCompat>() {
-                        override fun onComplete() {}
-
-                        override fun onNext(mediaController: MediaControllerCompat) {
+                    .subscribeWith(object : DisposableSingleObserver<MediaControllerCompat>() {
+                        override fun onSuccess(mediaController: MediaControllerCompat) {
                             connection.value = mediaController
 
                             subscribePlaybackUpdates()

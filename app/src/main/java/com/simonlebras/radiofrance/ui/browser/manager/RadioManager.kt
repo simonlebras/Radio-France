@@ -9,7 +9,7 @@ import io.reactivex.Observable
 import io.reactivex.Single
 
 interface RadioManager {
-    fun connect(): Observable<MediaControllerCompat>
+    fun connect(): Single<MediaControllerCompat>
 
     fun playbackStateUpdates(): Observable<PlaybackStateCompat>
 

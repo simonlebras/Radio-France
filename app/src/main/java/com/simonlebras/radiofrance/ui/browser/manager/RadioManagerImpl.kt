@@ -28,6 +28,7 @@ class RadioManagerImpl @Inject constructor(
             mediaController = MediaControllerCompat(context, mediaBrowser.sessionToken)
 
             connectionSubject.onNext(mediaController)
+            connectionSubject.onComplete()
         }
     }
 
@@ -77,15 +78,11 @@ class RadioManagerImpl @Inject constructor(
                 }
     }
 
-    override fun connect(): Observable<MediaControllerCompat> {
+    override fun connect(): Single<MediaControllerCompat> {
         return connectionSubject
+                .singleOrError()
                 .doOnSubscribe {
                     mediaBrowser.connect()
-                }
-                .doOnSubscribe {
-                    if (mediaBrowser.isConnected) {
-                        mediaBrowser.disconnect()
-                    }
                 }
     }
 
@@ -155,5 +152,9 @@ class RadioManagerImpl @Inject constructor(
 
     override fun clear() {
         compositeDisposable.dispose()
+
+        if (mediaBrowser.isConnected) {
+            mediaBrowser.disconnect()
+        }
     }
 }

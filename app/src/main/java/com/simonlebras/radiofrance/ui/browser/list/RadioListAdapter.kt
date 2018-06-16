@@ -1,8 +1,6 @@
 package com.simonlebras.radiofrance.ui.browser.list
 
 import android.support.v4.content.ContextCompat
-import android.support.v7.recyclerview.extensions.ListAdapter
-import android.support.v7.util.DiffUtil
 import android.support.v7.widget.RecyclerView
 import android.support.v7.widget.RecyclerView.NO_POSITION
 import android.view.LayoutInflater
@@ -16,8 +14,10 @@ import kotlinx.android.synthetic.main.list_item_radio.view.*
 
 class RadioListAdapter(
         private val fragment: RadioListFragment
-) : ListAdapter<Radio, RadioListAdapter.ViewHolder>(DiffCallback()),
+) : RecyclerView.Adapter<RadioListAdapter.ViewHolder>(),
         ListPreloader.PreloadModelProvider<Radio> {
+    var radios = emptyList<Radio>()
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val inflater = LayoutInflater.from(fragment.context)
 
@@ -25,7 +25,7 @@ class RadioListAdapter(
                 .apply {
                     itemView.setOnClickListener {
                         if (adapterPosition != NO_POSITION) {
-                            fragment.onRadioSelected(getItem(adapterPosition).id)
+                            fragment.onRadioSelected(radios[adapterPosition].id)
                         }
                     }
 
@@ -34,10 +34,12 @@ class RadioListAdapter(
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        holder.bindRadio(getItem(position))
+        holder.bindRadio(radios[position])
     }
 
-    override fun getPreloadItems(position: Int) = listOf(getItem(position))
+    override fun getItemCount() = radios.size
+
+    override fun getPreloadItems(position: Int) = listOf(radios[position])
 
     override fun getPreloadRequestBuilder(item: Radio) = GlideApp.with(fragment).load(item.logo)
 
@@ -62,11 +64,5 @@ class RadioListAdapter(
                     .placeholder(ContextCompat.getDrawable(fragment.context!!, R.drawable.ic_radio_blue_40dp))
                     .into(itemView.image_radio_logo)
         }
-    }
-
-    class DiffCallback : DiffUtil.ItemCallback<Radio>() {
-        override fun areItemsTheSame(oldItem: Radio, newItem: Radio) = oldItem.id == newItem.id
-
-        override fun areContentsTheSame(oldItem: Radio, newItem: Radio) = oldItem == newItem
     }
 }
