@@ -24,16 +24,14 @@ import com.bumptech.glide.request.target.SimpleTarget
 import com.bumptech.glide.request.transition.Transition
 import com.simonlebras.radiofrance.BuildConfig
 import com.simonlebras.radiofrance.R
-import com.simonlebras.radiofrance.di.ServiceScope
 import com.simonlebras.radiofrance.ui.MainActivity
 import com.simonlebras.radiofrance.utils.GlideApp
 import timber.log.Timber
 import javax.inject.Inject
 
-@ServiceScope
 class RadioNotificationManager @Inject constructor(
-        private val context: Context,
-        private val service: RadioPlaybackService
+    private val context: Context,
+    private val service: RadioPlaybackService
 ) : BroadcastReceiver() {
     private companion object {
         const val CHANNEL_ID = "${BuildConfig.APPLICATION_ID}.MUSIC_CHANNEL_ID"
@@ -52,34 +50,34 @@ class RadioNotificationManager @Inject constructor(
     private val notificationManager = NotificationManagerCompat.from(context)
 
     private val pauseIntent = PendingIntent.getBroadcast(
-            service,
-            REQUEST_CODE_CONTROL,
-            Intent(ACTION_PAUSE).setPackage(service.packageName),
-            PendingIntent.FLAG_CANCEL_CURRENT
+        service,
+        REQUEST_CODE_CONTROL,
+        Intent(ACTION_PAUSE).setPackage(service.packageName),
+        PendingIntent.FLAG_CANCEL_CURRENT
     )
     private val playIntent = PendingIntent.getBroadcast(
-            service,
-            REQUEST_CODE_CONTROL,
-            Intent(ACTION_PLAY).setPackage(service.packageName),
-            PendingIntent.FLAG_CANCEL_CURRENT
+        service,
+        REQUEST_CODE_CONTROL,
+        Intent(ACTION_PLAY).setPackage(service.packageName),
+        PendingIntent.FLAG_CANCEL_CURRENT
     )
     private val previousIntent = PendingIntent.getBroadcast(
-            service,
-            REQUEST_CODE_CONTROL,
-            Intent(ACTION_PREV).setPackage(service.packageName),
-            PendingIntent.FLAG_CANCEL_CURRENT
+        service,
+        REQUEST_CODE_CONTROL,
+        Intent(ACTION_PREV).setPackage(service.packageName),
+        PendingIntent.FLAG_CANCEL_CURRENT
     )
     private val nextIntent = PendingIntent.getBroadcast(
-            service,
-            REQUEST_CODE_CONTROL,
-            Intent(ACTION_NEXT).setPackage(service.packageName),
-            PendingIntent.FLAG_CANCEL_CURRENT
+        service,
+        REQUEST_CODE_CONTROL,
+        Intent(ACTION_NEXT).setPackage(service.packageName),
+        PendingIntent.FLAG_CANCEL_CURRENT
     )
     private val stopCastingIntent = PendingIntent.getBroadcast(
-            service,
-            REQUEST_CODE_CONTROL,
-            Intent(ACTION_STOP_CASTING).setPackage(service.packageName),
-            PendingIntent.FLAG_CANCEL_CURRENT
+        service,
+        REQUEST_CODE_CONTROL,
+        Intent(ACTION_STOP_CASTING).setPackage(service.packageName),
+        PendingIntent.FLAG_CANCEL_CURRENT
     )
 
     private var sessionToken: MediaSessionCompat.Token? = null
@@ -88,13 +86,14 @@ class RadioNotificationManager @Inject constructor(
     private var playbackState: PlaybackStateCompat? = null
     private var metadata: MediaMetadataCompat? = null
     private var started = false
-    private val notificationSize = service.resources.getDimensionPixelSize(android.R.dimen.notification_large_icon_width)
+    private val notificationSize =
+        service.resources.getDimensionPixelSize(android.R.dimen.notification_large_icon_width)
     private lateinit var target: SimpleTarget<Bitmap>
     private val callback = object : MediaControllerCompat.Callback() {
         override fun onPlaybackStateChanged(state: PlaybackStateCompat) {
             playbackState = state
 
-            if ((state.state == STATE_STOPPED) || (state.state == STATE_NONE)) {
+            if ((state.state == STATE_STOPPED) || (state.state == STATE_NONE) || (state.state == STATE_ERROR)) {
                 stopNotification()
             } else {
                 createNotification()?.let {
@@ -134,7 +133,10 @@ class RadioNotificationManager @Inject constructor(
             ACTION_STOP_CASTING -> {
                 val stopIntent = Intent(context, RadioPlaybackService::class.java).apply {
                     action = RadioPlaybackService.ACTION_CMD
-                    putExtra(RadioPlaybackService.EXTRAS_CMD_NAME, RadioPlaybackService.CMD_STOP_CASTING)
+                    putExtra(
+                        RadioPlaybackService.EXTRAS_CMD_NAME,
+                        RadioPlaybackService.CMD_STOP_CASTING
+                    )
                 }
 
                 service.startService(stopIntent)
@@ -193,7 +195,8 @@ class RadioNotificationManager @Inject constructor(
     fun updateSessionToken() {
         val token = service.sessionToken
         if (((sessionToken == null) && (token != null)) ||
-                ((sessionToken != null) && (sessionToken != token))) {
+            ((sessionToken != null) && (sessionToken != token))
+        ) {
             if (controller != null) {
                 controller!!.unregisterCallback(callback)
             }
@@ -214,7 +217,7 @@ class RadioNotificationManager @Inject constructor(
 
     fun reset() {
         GlideApp.with(context)
-                .clear(target)
+            .clear(target)
 
         stopNotification()
     }
@@ -224,7 +227,12 @@ class RadioNotificationManager @Inject constructor(
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
         }
 
-        return PendingIntent.getActivity(service, MainActivity.REQUEST_CODE_NOTIFICATION, contentIntent, PendingIntent.FLAG_CANCEL_CURRENT)
+        return PendingIntent.getActivity(
+            service,
+            MainActivity.REQUEST_CODE_NOTIFICATION,
+            contentIntent,
+            PendingIntent.FLAG_CANCEL_CURRENT
+        )
     }
 
     @TargetApi(Build.VERSION_CODES.O)
@@ -241,7 +249,11 @@ class RadioNotificationManager @Inject constructor(
 
         var playPauseButtonPosition = 0
         if (playbackState!!.actions and ACTION_SKIP_TO_PREVIOUS != 0L) {
-            builder.addAction(R.drawable.ic_skip_previous_white_24dp, service.getString(R.string.action_previous), previousIntent)
+            builder.addAction(
+                R.drawable.ic_skip_previous_white_24dp,
+                service.getString(R.string.action_previous),
+                previousIntent
+            )
 
             playPauseButtonPosition = 1
         }
@@ -249,22 +261,28 @@ class RadioNotificationManager @Inject constructor(
         addPlayPauseAction(builder)
 
         if (playbackState!!.actions and ACTION_SKIP_TO_NEXT != 0L) {
-            builder.addAction(R.drawable.ic_skip_next_white_24dp, service.getString(R.string.action_next), nextIntent)
+            builder.addAction(
+                R.drawable.ic_skip_next_white_24dp,
+                service.getString(R.string.action_next),
+                nextIntent
+            )
         }
 
         val description = metadata!!.description
 
         builder
-                .setStyle(android.support.v4.media.app.NotificationCompat.MediaStyle()
-                                  .setShowActionsInCompactView(playPauseButtonPosition)
-                                  .setMediaSession(sessionToken))
-                .setSmallIcon(R.drawable.ic_radio_white_24dp)
-                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-                .setContentIntent(createContentIntent())
-                .setContentTitle(description.title)
-                .setContentText(description.subtitle)
-                .setOnlyAlertOnce(true)
-                .setUsesChronometer(false)
+            .setStyle(
+                android.support.v4.media.app.NotificationCompat.MediaStyle()
+                    .setShowActionsInCompactView(playPauseButtonPosition)
+                    .setMediaSession(sessionToken)
+            )
+            .setSmallIcon(R.drawable.ic_radio_white_24dp)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setContentIntent(createContentIntent())
+            .setContentTitle(description.title)
+            .setContentText(description.subtitle)
+            .setOnlyAlertOnce(true)
+            .setUsesChronometer(false)
 
         val extras = controller?.extras
         if (extras != null) {
@@ -272,7 +290,11 @@ class RadioNotificationManager @Inject constructor(
             if (castName != null) {
                 val castInfo = service.resources.getString(R.string.casting_to_device, castName)
                 builder.setSubText(castInfo)
-                        .addAction(R.drawable.ic_close_black_24dp, service.getString(R.string.action_stop_casting), stopCastingIntent)
+                    .addAction(
+                        R.drawable.ic_close_black_24dp,
+                        service.getString(R.string.action_stop_casting),
+                        stopCastingIntent
+                    )
             }
         }
 
@@ -290,20 +312,28 @@ class RadioNotificationManager @Inject constructor(
         }
 
         GlideApp.with(context)
-                .asBitmap()
-                .load(logoUrl)
-                .placeholder(R.drawable.ic_radio_blue_64dp)
-                .override(notificationSize, notificationSize)
-                .into(target)
+            .asBitmap()
+            .load(logoUrl)
+            .placeholder(R.drawable.ic_radio_blue_64dp)
+            .override(notificationSize, notificationSize)
+            .into(target)
 
         return builder.build()
     }
 
     private fun addPlayPauseAction(builder: NotificationCompat.Builder) {
         if (playbackState!!.state == STATE_PLAYING) {
-            builder.addAction(R.drawable.ic_pause_white_24dp, service.getString(R.string.action_pause), pauseIntent)
+            builder.addAction(
+                R.drawable.ic_pause_white_24dp,
+                service.getString(R.string.action_pause),
+                pauseIntent
+            )
         } else {
-            builder.addAction(R.drawable.ic_play_arrow_white_24dp, service.getString(R.string.action_play), playIntent)
+            builder.addAction(
+                R.drawable.ic_play_arrow_white_24dp,
+                service.getString(R.string.action_play),
+                playIntent
+            )
         }
     }
 
@@ -318,11 +348,14 @@ class RadioNotificationManager @Inject constructor(
 
     @RequiresApi(Build.VERSION_CODES.O)
     private fun createNotificationChannel() {
-        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val notificationManager =
+            context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         if (notificationManager.getNotificationChannel(CHANNEL_ID) == null) {
-            val notificationChannel = NotificationChannel(CHANNEL_ID,
-                                                          context.getString(R.string.notification_channel),
-                                                          NotificationManager.IMPORTANCE_LOW)
+            val notificationChannel = NotificationChannel(
+                CHANNEL_ID,
+                context.getString(R.string.notification_channel),
+                NotificationManager.IMPORTANCE_LOW
+            )
 
             notificationManager.createNotificationChannel(notificationChannel)
         }

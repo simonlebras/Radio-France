@@ -7,7 +7,6 @@ apply plugin: 'com.android.application'
 apply plugin: 'com.google.firebase.firebase-perf'
 
 apply plugin: 'kotlin-android'
-apply plugin: 'kotlin-android-extensions'
 apply plugin: 'kotlin-kapt'
 
 apply plugin: 'io.fabric'
@@ -116,6 +115,8 @@ dependencies {
 
     implementation Dependencies.lifecycle
     implementation Dependencies.lifecycleJava8
+
+    kapt Dependencies.databinding
 
     implementation Dependencies.playServicesCastFramework
 

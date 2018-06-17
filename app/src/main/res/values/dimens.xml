@@ -2,5 +2,6 @@
 <resources>
 
     <dimen name="list_divider_width">1dp</dimen>
+    <dimen name="list_item_image_size">40dp</dimen>
 
 </resources>

@@ -1,53 +1,80 @@
 <?xml version="1.0" encoding="utf-8"?>
-<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="match_parent"
-    android:layout_height="72dp"
-    android:background="?attr/selectableItemBackground"
-    tools:context=".ui.MainActivity">
+    xmlns:tools="http://schemas.android.com/tools">
 
-    <ImageView
-        android:id="@+id/image_radio_logo"
-        android:layout_width="40dp"
-        android:layout_height="40dp"
-        android:layout_marginStart="?attr/listPreferredItemPaddingLeft"
-        android:layout_marginTop="16dp"
-        android:contentDescription="@string/image_radio_logo_description"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+    <data>
 
-    <TextView xmlns:tools="http://schemas.android.com/tools"
-        android:id="@+id/text_radio_title"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginEnd="?attr/listPreferredItemPaddingRight"
-        android:ellipsize="end"
-        android:maxLines="1"
-        android:textAlignment="viewStart"
-        android:textColor="@color/colorPrimaryText"
-        android:textSize="16sp"
-        app:layout_constraintBottom_toTopOf="@+id/text_radio_description"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@+id/image_radio_logo"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_chainStyle="packed" />
+        <import type="android.graphics.Bitmap" />
 
-    <TextView
-        android:id="@+id/text_radio_description"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginEnd="?attr/listPreferredItemPaddingRight"
-        android:ellipsize="end"
-        android:maxLines="1"
-        android:textAlignment="viewStart"
-        android:textColor="@color/colorSecondaryText"
-        android:textSize="14sp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@+id/image_radio_logo"
-        app:layout_constraintTop_toBottomOf="@+id/text_radio_title" />
+        <variable
+            name="glideRequest"
+            type="com.bumptech.glide.RequestBuilder&lt;Bitmap>" />
 
-</android.support.constraint.ConstraintLayout>
+        <variable
+            name="radio"
+            type="com.simonlebras.radiofrance.data.models.Radio" />
+
+        <variable
+            name="viewModel"
+            type="com.simonlebras.radiofrance.ui.MainViewModel" />
+
+    </data>
+
+    <android.support.constraint.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="72dp"
+        android:background="?attr/selectableItemBackground"
+        android:onClick="@{() -> viewModel.playFromId(radio.id)}"
+        tools:context=".ui.MainActivity">
+
+        <ImageView
+            android:id="@+id/image_radio_logo"
+            android:layout_width="@dimen/list_item_image_size"
+            android:layout_height="@dimen/list_item_image_size"
+            android:layout_marginStart="?attr/listPreferredItemPaddingLeft"
+            android:layout_marginTop="16dp"
+            android:contentDescription="@string/image_radio_logo_description"
+            app:glideRequest="@{glideRequest}"
+            app:imageUrl="@{radio.logo}"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView xmlns:tools="http://schemas.android.com/tools"
+            android:id="@+id/text_radio_name"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="?attr/listPreferredItemPaddingRight"
+            android:layout_marginStart="16dp"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="@{radio.name}"
+            android:textAlignment="viewStart"
+            android:textColor="@color/colorPrimaryText"
+            android:textSize="16sp"
+            app:layout_constraintBottom_toTopOf="@+id/text_radio_description"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@+id/image_radio_logo"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_chainStyle="packed" />
+
+        <TextView
+            android:id="@+id/text_radio_description"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="?attr/listPreferredItemPaddingRight"
+            android:layout_marginStart="16dp"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="@{radio.description}"
+            android:textAlignment="viewStart"
+            android:textColor="@color/colorSecondaryText"
+            android:textSize="14sp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@+id/image_radio_logo"
+            app:layout_constraintTop_toBottomOf="@+id/text_radio_name" />
+
+    </android.support.constraint.ConstraintLayout>
+
+</layout>

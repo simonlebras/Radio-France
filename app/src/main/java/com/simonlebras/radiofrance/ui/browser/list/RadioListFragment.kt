@@ -20,7 +20,7 @@ import android.view.*
 import android.view.View.GONE
 import android.view.View.VISIBLE
 import com.bumptech.glide.integration.recyclerview.RecyclerViewPreloader
-import com.bumptech.glide.util.ViewPreloadSizeProvider
+import com.bumptech.glide.util.FixedPreloadSizeProvider
 import com.google.android.gms.cast.framework.*
 import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.GoogleApiAvailability
@@ -28,6 +28,7 @@ import com.jakewharton.rxbinding2.support.v7.widget.queryTextChanges
 import com.simonlebras.radiofrance.R
 import com.simonlebras.radiofrance.data.models.Radio
 import com.simonlebras.radiofrance.data.models.Status
+import com.simonlebras.radiofrance.databinding.FragmentRadioListBinding
 import com.simonlebras.radiofrance.ui.MainViewModel
 import com.simonlebras.radiofrance.utils.AppSchedulers
 import dagger.android.support.DaggerFragment
@@ -35,8 +36,6 @@ import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.observers.DisposableObserver
 import io.reactivex.processors.PublishProcessor
 import io.reactivex.subscribers.DisposableSubscriber
-import kotlinx.android.synthetic.main.fragment_radio_list.*
-import kotlinx.android.synthetic.main.partial_toolbar.*
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
@@ -51,9 +50,9 @@ class RadioListFragment : DaggerFragment() {
     @Inject
     lateinit var viewModelFactory: ViewModelProvider.Factory
 
-    val preloadSizeProvider = ViewPreloadSizeProvider<Radio>()
+    private lateinit var binding: FragmentRadioListBinding
 
-    private lateinit var viewModel: MainViewModel
+    lateinit var viewModel: MainViewModel
 
     private lateinit var adapter: RadioListAdapter
 
@@ -76,12 +75,12 @@ class RadioListFragment : DaggerFragment() {
     private val handler = Handler()
     private val handlerCallbacks = Runnable {
         introductoryOverlay = IntroductoryOverlay.Builder(activity, mediaRouteMenuItem)
-                .setTitleText(R.string.touch_to_cast)
-                .setSingleTime()
-                .setOnOverlayDismissedListener {
-                    introductoryOverlay = null
-                }
-                .build()
+            .setTitleText(R.string.touch_to_cast)
+            .setSingleTime()
+            .setOnOverlayDismissedListener {
+                introductoryOverlay = null
+            }
+            .build()
 
         introductoryOverlay!!.show()
     }
@@ -90,7 +89,7 @@ class RadioListFragment : DaggerFragment() {
         super.onCreate(savedInstanceState)
 
         if (GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(context) == ConnectionResult.SUCCESS) {
-            castContext = CastContext.getSharedInstance(context!!)
+            castContext = CastContext.getSharedInstance(requireContext())
         }
 
         setHasOptionsMenu(true)
@@ -98,34 +97,45 @@ class RadioListFragment : DaggerFragment() {
         query = savedInstanceState?.getString(BUNDLE_QUERY, null)
     }
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
-        return inflater.inflate(R.layout.fragment_radio_list, container, false)
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View? {
+        binding = FragmentRadioListBinding.inflate(inflater, container, false)
+
+        return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        (activity as AppCompatActivity).setSupportActionBar(toolbar)
+        (activity as AppCompatActivity).setSupportActionBar(binding.partialToolbar.toolbar)
 
         adapter = RadioListAdapter(this)
 
-        recycler_view.let {
+        binding.recyclerView.let {
             it.adapter = adapter
             it.itemAnimator = DefaultItemAnimator()
             it.setHasFixedSize(true)
 
             it.layoutManager = LinearLayoutManager(context)
 
-            val preloader = RecyclerViewPreloader(this, adapter, preloadSizeProvider, 4)
+            val imageSize = resources.getDimensionPixelSize(R.dimen.list_item_image_size)
+            val preloadSizeProvider = FixedPreloadSizeProvider<Radio>(imageSize, imageSize)
+            val preloader = RecyclerViewPreloader(this, adapter, preloadSizeProvider, 5)
             it.addOnScrollListener(preloader)
 
             val width = resources.getDimensionPixelSize(R.dimen.list_divider_width)
-                    .toFloat()
-            val decoration = DividerItemDecoration(ContextCompat.getColor(context!!, R.color.colorDivider), width)
+                .toFloat()
+            val decoration = DividerItemDecoration(
+                ContextCompat.getColor(requireContext(), R.color.colorDivider),
+                width
+            )
             it.addItemDecoration(decoration)
         }
 
-        button_list_refresh.setOnClickListener {
+        binding.buttonListRefresh.setOnClickListener {
             showProgressBar()
 
             viewModel.retryLoadRadios()
@@ -136,7 +146,7 @@ class RadioListFragment : DaggerFragment() {
         super.onActivityCreated(savedInstanceState)
 
         viewModel = ViewModelProviders.of(requireActivity(), viewModelFactory)
-                .get(MainViewModel::class.java)
+            .get(MainViewModel::class.java)
 
         viewModel.connect()
 
@@ -144,40 +154,43 @@ class RadioListFragment : DaggerFragment() {
             viewModel.loadRadios()
         })
 
-        viewModel.playbackState.observe(viewLifecycleOwner, Observer { onPlaybackStateChanged(it!!) })
+        viewModel.playbackState.observe(
+            viewLifecycleOwner,
+            Observer { onPlaybackStateChanged(it!!) })
         viewModel.metadata.observe(viewLifecycleOwner, Observer { onMetadataChanged(it!!) })
 
         val initialValue = Pair<List<Radio>, DiffUtil.DiffResult?>(emptyList(), null)
         val disposable = radioSubject
-                .scan(initialValue) { pair, next ->
-                    Pair(
-                            next,
-                            DiffUtil.calculateDiff(DiffUtilCallback(pair.first, next))
-                    )
-                }
-                .skip(1)
-                .subscribeOn(appSchedulers.computation)
-                .observeOn(appSchedulers.main)
-                .subscribeWith(object : DisposableSubscriber<Pair<List<Radio>, DiffUtil.DiffResult?>>() {
-                    override fun onComplete() {}
+            .scan(initialValue) { pair, next ->
+                Pair(
+                    next,
+                    DiffUtil.calculateDiff(DiffUtilCallback(pair.first, next))
+                )
+            }
+            .skip(1)
+            .subscribeOn(appSchedulers.computation)
+            .observeOn(appSchedulers.main)
+            .subscribeWith(object :
+                               DisposableSubscriber<Pair<List<Radio>, DiffUtil.DiffResult?>>() {
+                override fun onComplete() {}
 
-                    override fun onNext(pair: Pair<List<Radio>, DiffUtil.DiffResult?>) {
-                        val (radios, diffResult) = pair
+                override fun onNext(pair: Pair<List<Radio>, DiffUtil.DiffResult?>) {
+                    val (radios, diffResult) = pair
 
-                        if (radios.isEmpty()) {
-                            showNoResultView()
-                        } else {
-                            showRecyclerView()
-                        }
-
-                        adapter.radios = radios
-                        diffResult!!.dispatchUpdatesTo(adapter)
-
-                        recycler_view.scrollToPosition(0)
+                    if (radios.isEmpty()) {
+                        showNoResultView()
+                    } else {
+                        showRecyclerView()
                     }
 
-                    override fun onError(e: Throwable) {}
-                })
+                    adapter.radios = radios
+                    diffResult!!.dispatchUpdatesTo(adapter)
+
+                    binding.recyclerView.scrollToPosition(0)
+                }
+
+                override fun onError(e: Throwable) {}
+            })
 
         compositeDisposable.add(disposable)
 
@@ -196,13 +209,18 @@ class RadioListFragment : DaggerFragment() {
         inflater.inflate(R.menu.activity_radio_browser, menu)
 
         if (castContext != null) {
-            mediaRouteMenuItem = CastButtonFactory.setUpMediaRouteButton(context!!.applicationContext, menu, R.id.action_media_route)
+            mediaRouteMenuItem = CastButtonFactory.setUpMediaRouteButton(
+                requireContext().applicationContext,
+                menu,
+                R.id.action_media_route
+            )
         }
 
         val searchItem = menu.findItem(R.id.action_search)
         searchView = searchItem.actionView as SearchView
-        val searchManager = ContextCompat.getSystemService(context!!, SearchManager::class.java)!!
-        searchView.setSearchableInfo(searchManager.getSearchableInfo(activity!!.componentName))
+        val searchManager =
+            ContextCompat.getSystemService(requireContext(), SearchManager::class.java)!!
+        searchView.setSearchableInfo(searchManager.getSearchableInfo(requireActivity().componentName))
 
         if (query != null) {
             searchItem.expandActionView()
@@ -211,24 +229,24 @@ class RadioListFragment : DaggerFragment() {
         }
 
         val disposable = searchView.queryTextChanges()
-                .skipInitialValue()
-                .throttleLast(100, TimeUnit.MILLISECONDS, appSchedulers.computation)
-                .debounce(200, TimeUnit.MILLISECONDS, appSchedulers.computation)
-                .map(CharSequence::toString)
-                .map(String::trim)
-                .distinctUntilChanged()
-                .observeOn(appSchedulers.main)
-                .subscribeWith(object : DisposableObserver<String>() {
-                    override fun onComplete() {
-                    }
+            .skipInitialValue()
+            .throttleLast(100, TimeUnit.MILLISECONDS, appSchedulers.computation)
+            .debounce(200, TimeUnit.MILLISECONDS, appSchedulers.computation)
+            .map(CharSequence::toString)
+            .map(String::trim)
+            .distinctUntilChanged()
+            .observeOn(appSchedulers.main)
+            .subscribeWith(object : DisposableObserver<String>() {
+                override fun onComplete() {
+                }
 
-                    override fun onNext(query: String) {
-                        viewModel.searchRadios(query)
-                    }
+                override fun onNext(query: String) {
+                    viewModel.searchRadios(query)
+                }
 
-                    override fun onError(e: Throwable) {
-                    }
-                })
+                override fun onError(e: Throwable) {
+                }
+            })
 
         compositeDisposable.add(disposable)
     }
@@ -248,7 +266,10 @@ class RadioListFragment : DaggerFragment() {
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
-        outState.putString(BUNDLE_QUERY, searchView.query.toString())
+        outState.putString(
+            BUNDLE_QUERY,
+            if (searchView.isIconified) null else searchView.query.toString()
+        )
 
         super.onSaveInstanceState(outState)
     }
@@ -262,7 +283,7 @@ class RadioListFragment : DaggerFragment() {
     private fun onPlaybackStateChanged(playbackState: PlaybackStateCompat) {
         if (playbackState.state == STATE_ERROR) {
             Snackbar.make(view!!, playbackState.errorMessage, Snackbar.LENGTH_LONG)
-                    .show()
+                .show()
         }
     }
 
@@ -270,38 +291,34 @@ class RadioListFragment : DaggerFragment() {
         updateToolbarTitle(metadata.description?.title?.toString())
     }
 
-    fun onRadioSelected(id: String) {
-        viewModel.playFromId(id)
-    }
-
     private fun showProgressBar() {
-        progress_bar.visibility = VISIBLE
-        recycler_view.visibility = GONE
-        empty_view.visibility = GONE
-        text_no_result.visibility = GONE
+        binding.progressBar.visibility = VISIBLE
+        binding.recyclerView.visibility = GONE
+        binding.emptyView.visibility = GONE
+        binding.textNoResult.visibility = GONE
     }
 
     private fun showRecyclerView() {
-        if (recycler_view.visibility != VISIBLE) {
-            progress_bar.visibility = GONE
-            recycler_view.visibility = VISIBLE
-            empty_view.visibility = GONE
-            text_no_result.visibility = GONE
+        if (binding.recyclerView.visibility != VISIBLE) {
+            binding.progressBar.visibility = GONE
+            binding.recyclerView.visibility = VISIBLE
+            binding.emptyView.visibility = GONE
+            binding.textNoResult.visibility = GONE
         }
     }
 
     private fun showEmptyView() {
-        progress_bar.visibility = GONE
-        recycler_view.visibility = GONE
-        empty_view.visibility = VISIBLE
-        text_no_result.visibility = GONE
+        binding.progressBar.visibility = GONE
+        binding.recyclerView.visibility = GONE
+        binding.emptyView.visibility = VISIBLE
+        binding.textNoResult.visibility = GONE
     }
 
     private fun showNoResultView() {
-        progress_bar.visibility = GONE
-        recycler_view.visibility = GONE
-        empty_view.visibility = GONE
-        text_no_result.visibility = VISIBLE
+        binding.progressBar.visibility = GONE
+        binding.recyclerView.visibility = GONE
+        binding.emptyView.visibility = GONE
+        binding.textNoResult.visibility = VISIBLE
     }
 
     private fun showCastOverlay() {
@@ -313,6 +330,6 @@ class RadioListFragment : DaggerFragment() {
     }
 
     private fun updateToolbarTitle(title: String?) {
-        toolbar.title = title ?: getString(R.string.label_radios)
+        binding.partialToolbar.toolbar.title = title ?: getString(R.string.label_radios)
     }
 }
