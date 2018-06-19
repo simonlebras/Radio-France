@@ -104,6 +104,9 @@ android {
 dependencies {
     implementation Dependencies.kotlinStdlib
 
+    implementation Dependencies.coroutinesCore
+    implementation Dependencies.coroutinesAndroid
+
     implementation Dependencies.appcompat
     implementation Dependencies.recyclerview
     implementation Dependencies.cardview

@@ -15,6 +15,7 @@ import android.os.RemoteException
 import android.support.annotation.RequiresApi
 import android.support.v4.app.NotificationCompat
 import android.support.v4.app.NotificationManagerCompat
+import android.support.v4.content.ContextCompat
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.MediaSessionCompat
@@ -25,6 +26,8 @@ import com.bumptech.glide.request.transition.Transition
 import com.simonlebras.radiofrance.BuildConfig
 import com.simonlebras.radiofrance.R
 import com.simonlebras.radiofrance.ui.MainActivity
+import com.simonlebras.radiofrance.ui.utils.mutableTint
+import com.simonlebras.radiofrance.ui.utils.toBitmap
 import com.simonlebras.radiofrance.utils.GlideApp
 import timber.log.Timber
 import javax.inject.Inject
@@ -88,6 +91,7 @@ class RadioNotificationManager @Inject constructor(
     private var started = false
     private val notificationSize =
         service.resources.getDimensionPixelSize(android.R.dimen.notification_large_icon_width)
+    private var placeholder: Bitmap
     private lateinit var target: SimpleTarget<Bitmap>
     private val callback = object : MediaControllerCompat.Callback() {
         override fun onPlaybackStateChanged(state: PlaybackStateCompat) {
@@ -122,6 +126,12 @@ class RadioNotificationManager @Inject constructor(
 
     init {
         notificationManager.cancelAll()
+
+        val tint = ContextCompat.getColor(context, R.color.colorPrimary)
+
+        placeholder =
+                ContextCompat.getDrawable(context, R.drawable.ic_radio)!!.mutableTint(tint)
+                    .toBitmap(context)
     }
 
     override fun onReceive(context: Context, intent: Intent) {
@@ -216,8 +226,11 @@ class RadioNotificationManager @Inject constructor(
     }
 
     fun reset() {
-        GlideApp.with(context)
-            .clear(target)
+        if (this::target.isInitialized) {
+            GlideApp.with(context)
+                .clear(target)
+        }
+
 
         stopNotification()
     }
@@ -250,7 +263,7 @@ class RadioNotificationManager @Inject constructor(
         var playPauseButtonPosition = 0
         if (playbackState!!.actions and ACTION_SKIP_TO_PREVIOUS != 0L) {
             builder.addAction(
-                R.drawable.ic_skip_previous_white_24dp,
+                R.drawable.ic_skip_previous,
                 service.getString(R.string.action_previous),
                 previousIntent
             )
@@ -262,7 +275,7 @@ class RadioNotificationManager @Inject constructor(
 
         if (playbackState!!.actions and ACTION_SKIP_TO_NEXT != 0L) {
             builder.addAction(
-                R.drawable.ic_skip_next_white_24dp,
+                R.drawable.ic_skip_next,
                 service.getString(R.string.action_next),
                 nextIntent
             )
@@ -276,7 +289,7 @@ class RadioNotificationManager @Inject constructor(
                     .setShowActionsInCompactView(playPauseButtonPosition)
                     .setMediaSession(sessionToken)
             )
-            .setSmallIcon(R.drawable.ic_radio_white_24dp)
+            .setSmallIcon(R.drawable.ic_radio)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setContentIntent(createContentIntent())
             .setContentTitle(description.title)
@@ -291,7 +304,7 @@ class RadioNotificationManager @Inject constructor(
                 val castInfo = service.resources.getString(R.string.casting_to_device, castName)
                 builder.setSubText(castInfo)
                     .addAction(
-                        R.drawable.ic_close_black_24dp,
+                        R.drawable.ic_close,
                         service.getString(R.string.action_stop_casting),
                         stopCastingIntent
                     )
@@ -301,22 +314,37 @@ class RadioNotificationManager @Inject constructor(
         setNotificationPlaybackState(builder)
 
         val logoUrl = metadata?.description?.iconUri
-        target = object : SimpleTarget<Bitmap>() {
-            override fun onResourceReady(resource: Bitmap, transition: Transition<in Bitmap>?) {
-                if (metadata?.description?.iconUri == logoUrl) {
+
+        val future = GlideApp.with(context)
+            .asBitmap()
+            .onlyRetrieveFromCache(true)
+            .load(logoUrl)
+            .override(notificationSize, notificationSize)
+            .submit(notificationSize, notificationSize)
+
+        if (future.isDone) {
+            builder.setLargeIcon(future.get())
+        } else {
+            builder.setLargeIcon(placeholder)
+
+            if (this::target.isInitialized) {
+                GlideApp.with(context).clear(target)
+            }
+
+            target = object : SimpleTarget<Bitmap>() {
+                override fun onResourceReady(resource: Bitmap, transition: Transition<in Bitmap>?) {
                     builder.setLargeIcon(resource)
 
                     notificationManager.notify(NOTIFICATION_ID, builder.build())
                 }
             }
-        }
 
-        GlideApp.with(context)
-            .asBitmap()
-            .load(logoUrl)
-            .placeholder(R.drawable.ic_radio_blue_64dp)
-            .override(notificationSize, notificationSize)
-            .into(target)
+            GlideApp.with(context)
+                .asBitmap()
+                .load(logoUrl)
+                .override(notificationSize, notificationSize)
+                .into(target)
+        }
 
         return builder.build()
     }
@@ -324,13 +352,13 @@ class RadioNotificationManager @Inject constructor(
     private fun addPlayPauseAction(builder: NotificationCompat.Builder) {
         if (playbackState!!.state == STATE_PLAYING) {
             builder.addAction(
-                R.drawable.ic_pause_white_24dp,
+                R.drawable.ic_pause,
                 service.getString(R.string.action_pause),
                 pauseIntent
             )
         } else {
             builder.addAction(
-                R.drawable.ic_play_arrow_white_24dp,
+                R.drawable.ic_play_arrow,
                 service.getString(R.string.action_play),
                 playIntent
             )

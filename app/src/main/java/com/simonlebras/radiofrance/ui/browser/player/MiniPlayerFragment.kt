@@ -11,6 +11,7 @@ import android.view.ViewGroup
 import com.simonlebras.radiofrance.R
 import com.simonlebras.radiofrance.databinding.FragmentMiniPlayerBinding
 import com.simonlebras.radiofrance.ui.MainViewModel
+import com.simonlebras.radiofrance.ui.utils.mutableTint
 import com.simonlebras.radiofrance.utils.GlideApp
 import dagger.android.support.DaggerFragment
 import javax.inject.Inject
@@ -41,9 +42,14 @@ class MiniPlayerFragment : DaggerFragment() {
 
         binding.viewModel = viewModel
 
+        val tint = ContextCompat.getColor(requireContext(), R.color.colorPrimary)
+
+        val drawable =
+            ContextCompat.getDrawable(requireContext(), R.drawable.ic_radio)!!.mutableTint(tint)
+
         binding.glideRequest = GlideApp.with(this)
             .asBitmap()
-            .placeholder(ContextCompat.getDrawable(requireContext(), R.drawable.ic_radio_blue_64dp))
+            .placeholder(drawable)
 
         viewModel.playbackState.observe(
             viewLifecycleOwner,

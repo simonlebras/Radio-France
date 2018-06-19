@@ -3,7 +3,7 @@ package com.simonlebras.radiofrance.di
 import android.arch.lifecycle.ViewModel
 import android.arch.lifecycle.ViewModelProvider
 import com.simonlebras.radiofrance.ui.MainViewModel
-import com.simonlebras.radiofrance.ui.ViewModelFactory
+import com.simonlebras.radiofrance.ui.utils.ViewModelFactory
 import dagger.Binds
 import dagger.Module
 import dagger.multibindings.IntoMap

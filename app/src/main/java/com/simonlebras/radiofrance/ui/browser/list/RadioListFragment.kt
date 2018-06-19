@@ -206,7 +206,7 @@ class RadioListFragment : DaggerFragment() {
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
         super.onCreateOptionsMenu(menu, inflater)
 
-        inflater.inflate(R.menu.activity_radio_browser, menu)
+        inflater.inflate(R.menu.fragment_radio_list, menu)
 
         if (castContext != null) {
             mediaRouteMenuItem = CastButtonFactory.setUpMediaRouteButton(

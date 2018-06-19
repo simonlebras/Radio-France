@@ -1,4 +1,4 @@
-package com.simonlebras.radiofrance.ui
+package com.simonlebras.radiofrance.ui.utils
 
 import android.arch.lifecycle.ViewModel
 import android.arch.lifecycle.ViewModelProvider

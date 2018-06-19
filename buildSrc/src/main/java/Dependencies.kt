@@ -3,6 +3,8 @@ object Versions {
 
     const val kotlin = "1.2.50"
 
+    const val coroutines = "0.23.3"
+
     const val compileSdk = 28
     const val buildTools = "28.0.0"
     const val minSdk = 21
@@ -44,6 +46,11 @@ object Versions {
 
 object Dependencies {
     const val kotlinStdlib = "org.jetbrains.kotlin:kotlin-stdlib-jdk8:${Versions.kotlin}"
+
+    const val coroutinesCore =
+        "org.jetbrains.kotlinx:kotlinx-coroutines-core:${Versions.coroutines}"
+    const val coroutinesAndroid =
+        "org.jetbrains.kotlinx:kotlinx-coroutines-android:${Versions.coroutines}"
 
     const val appcompat = "com.android.support:appcompat-v7:${Versions.supportLibrary}"
     const val recyclerview = "com.android.support:recyclerview-v7:${Versions.supportLibrary}"

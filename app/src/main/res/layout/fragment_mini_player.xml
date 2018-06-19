@@ -82,27 +82,30 @@
             android:layout_width="36dp"
             android:layout_height="36dp"
             android:layout_marginEnd="8dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
+            android:background="?selectableItemBackgroundBorderless"
             android:contentDescription="@string/action_previous"
             android:onClick="@{() -> viewModel.skipToPrevious()}"
+            android:scaleType="fitXY"
+            android:tint="@color/colorAccent"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintRight_toLeftOf="@+id/button_radio_play_pause"
             app:layout_constraintTop_toTopOf="parent"
-            app:srcCompat="@drawable/ic_skip_previous_pink_36dp" />
+            app:srcCompat="@drawable/ic_skip_previous" />
 
-        <ImageButton
+        <com.simonlebras.radiofrance.ui.browser.player.PlayPauseButton
             android:id="@+id/button_radio_play_pause"
             android:layout_width="36dp"
             android:layout_height="36dp"
             android:layout_marginEnd="8dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
+            android:background="?selectableItemBackgroundBorderless"
             android:contentDescription="@string/action_play_pause"
             android:onClick="@{() -> viewModel.togglePlayPause()}"
-            app:playbackState="@{playbackState}"
+            android:scaleType="fitXY"
+            android:tint="?colorAccent"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintRight_toLeftOf="@+id/button_radio_skip_next"
             app:layout_constraintTop_toTopOf="parent"
-            app:srcCompat="@drawable/ic_play_arrow_pink_36dp" />
+            app:playbackState="@{playbackState}" />
 
         <ImageButton
             android:id="@+id/button_radio_skip_next"
@@ -112,10 +115,12 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/action_next"
             android:onClick="@{() -> viewModel.skipToNext()}"
+            android:scaleType="fitXY"
+            android:tint="@color/colorAccent"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintRight_toRightOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:srcCompat="@drawable/ic_skip_next_pink_36p" />
+            app:srcCompat="@drawable/ic_skip_next" />
 
     </android.support.constraint.ConstraintLayout>
 
