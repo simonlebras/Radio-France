@@ -26,9 +26,9 @@ abstract class ApplicationModule {
         @Provides
         @Singleton
         fun provideAppSchedulers() = AppSchedulers(
-                Schedulers.computation(),
-                Schedulers.from(Executors.newFixedThreadPool(3)),
-                AndroidSchedulers.mainThread()
+            computation = Schedulers.computation(),
+            network = Schedulers.from(Executors.newFixedThreadPool(3)),
+            main = AndroidSchedulers.mainThread()
         )
     }
 }

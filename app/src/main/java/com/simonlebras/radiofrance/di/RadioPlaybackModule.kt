@@ -5,11 +5,9 @@ import android.content.Context
 import android.content.Intent
 import android.support.v4.media.session.MediaButtonReceiver
 import android.support.v4.media.session.MediaSessionCompat
-import android.support.v7.media.MediaRouter
 import com.google.android.gms.cast.framework.CastContext
 import com.google.android.gms.cast.framework.CastSession
 import com.google.android.gms.cast.framework.SessionManager
-import com.google.android.gms.cast.framework.media.RemoteMediaClient
 import com.simonlebras.radiofrance.data.repository.RadioRepository
 import com.simonlebras.radiofrance.data.repository.RadioRepositoryImpl
 import com.simonlebras.radiofrance.playback.*
@@ -28,7 +26,10 @@ class RadioPlaybackModule {
 
     @Provides
     @ServiceScope
-    fun provideMediaSessionCompat(context: Context, mediaSessionCallback: MediaSessionCallback): MediaSessionCompat {
+    fun provideMediaSessionCompat(
+        context: Context,
+        mediaSessionCallback: MediaSessionCallback
+    ): MediaSessionCompat {
         val mediaSession = MediaSessionCompat(context, RadioPlaybackService.TAG)
         mediaSession.setFlags(MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS or MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS)
         mediaSession.setCallback(mediaSessionCallback)
@@ -40,7 +41,12 @@ class RadioPlaybackModule {
         mediaSession.setMediaButtonReceiver(pendingIntent)
 
         val intent = Intent(context, MainActivity::class.java)
-        pendingIntent = PendingIntent.getActivity(context, MainActivity.REQUEST_CODE_SESSION, intent, PendingIntent.FLAG_UPDATE_CURRENT)
+        pendingIntent = PendingIntent.getActivity(
+            context,
+            MainActivity.REQUEST_CODE_SESSION,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT
+        )
         mediaSession.setSessionActivity(pendingIntent)
 
         return mediaSession
@@ -51,10 +57,16 @@ class RadioPlaybackModule {
 
     @Provides
     @ServiceScope
-    fun provideCastSessionManager(context: Context, castSessionManagerListener: CastSessionManagerListener): SessionManager {
+    fun provideCastSessionManager(
+        context: Context,
+        castSessionManagerListener: CastSessionManagerListener
+    ): SessionManager {
         val castSessionManager = CastContext.getSharedInstance(context)
-                .sessionManager
-        castSessionManager.addSessionManagerListener(castSessionManagerListener, CastSession::class.java)
+            .sessionManager
+        castSessionManager.addSessionManagerListener(
+            castSessionManagerListener,
+            CastSession::class.java
+        )
 
         return castSessionManager
     }
@@ -63,11 +75,11 @@ class RadioPlaybackModule {
     @ServiceScope
     @Named(LOCAL_KEY)
     fun provideLocalPlaybackFactory(provider: Provider<LocalPlayback>): Function1<@JvmWildcard Context, @JvmWildcard Playback> =
-            { provider.get() }
+        { provider.get() }
 
     @Provides
     @ServiceScope
     @Named(CAST_KEY)
     fun provideCastPlaybackFactory(provider: Provider<CastPlayback>): Function1<@JvmWildcard Context, @JvmWildcard Playback> =
-            { provider.get() }
+        { provider.get() }
 }
