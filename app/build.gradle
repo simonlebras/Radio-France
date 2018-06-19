@@ -107,6 +107,8 @@ dependencies {
     implementation Dependencies.coroutinesCore
     implementation Dependencies.coroutinesAndroid
 
+    implementation Dependencies.androidKTX
+
     implementation Dependencies.appcompat
     implementation Dependencies.recyclerview
     implementation Dependencies.cardview

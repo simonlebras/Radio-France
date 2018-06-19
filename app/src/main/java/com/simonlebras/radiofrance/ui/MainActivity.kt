@@ -1,99 +1,68 @@
 package com.simonlebras.radiofrance.ui
 
-import android.arch.lifecycle.Observer
+import android.app.PendingIntent
 import android.arch.lifecycle.ViewModelProvider
-import android.arch.lifecycle.ViewModelProviders
-import android.databinding.DataBindingUtil
+import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import android.support.v4.media.session.MediaControllerCompat
-import android.support.v4.media.session.PlaybackStateCompat.*
-import android.view.View.VISIBLE
 import com.simonlebras.radiofrance.R
-import com.simonlebras.radiofrance.databinding.ActivityMainBinding
 import com.simonlebras.radiofrance.ui.browser.list.RadioListFragment
-import com.simonlebras.radiofrance.ui.browser.player.MiniPlayerFragment
+import com.simonlebras.radiofrance.ui.utils.observeK
+import com.simonlebras.radiofrance.ui.utils.withViewModel
 import dagger.android.support.DaggerAppCompatActivity
 import javax.inject.Inject
 
 class MainActivity : DaggerAppCompatActivity() {
-    companion object {
-        const val REQUEST_CODE_NOTIFICATION = 100
-        const val REQUEST_CODE_SESSION = 101
-    }
-
     @Inject
     lateinit var viewModelFactory: ViewModelProvider.Factory
-
-    private lateinit var binding: ActivityMainBinding
-
-    private lateinit var radioListFragment: RadioListFragment
-    private lateinit var miniPlayerFragment: MiniPlayerFragment
 
     override fun onCreate(savedInstanceState: Bundle?) {
         setTheme(R.style.AppTheme)
 
         super.onCreate(savedInstanceState)
 
-        binding = DataBindingUtil.setContentView(this, R.layout.activity_main)
+        setContentView(R.layout.activity_main)
 
-        radioListFragment =
-                supportFragmentManager.findFragmentById(R.id.fragment_radio_browser) as RadioListFragment
-        miniPlayerFragment =
-                supportFragmentManager.findFragmentById(R.id.fragment_mini_player) as MiniPlayerFragment
+        if (savedInstanceState == null) {
+            supportFragmentManager.beginTransaction()
+                .add(R.id.container, RadioListFragment.newInstance())
+                .commit()
+        }
 
-        val viewModel = ViewModelProviders.of(this, viewModelFactory)
-            .get(MainViewModel::class.java)
+        withViewModel<MainViewModel>(viewModelFactory) {
+            connect()
 
-        viewModel.connect()
-
-        viewModel.connection.observe(this, Observer {
-            MediaControllerCompat.setMediaController(this, it)
-
-            toggleMiniPlayerVisibility()
-        })
-
-        viewModel.playbackState.observe(this, Observer {
-            toggleMiniPlayerVisibility()
-        })
-    }
-
-    private fun toggleMiniPlayerVisibility() {
-        if (shouldShowMiniPlayer()) {
-            showMiniPlayer()
-        } else {
-            hideMiniPlayer()
+            connection.observeK(this@MainActivity) {
+                MediaControllerCompat.setMediaController(this@MainActivity, it)
+            }
         }
     }
 
-    private fun shouldShowMiniPlayer(): Boolean {
-        val mediaController = MediaControllerCompat.getMediaController(this)
-        if ((mediaController == null) || (mediaController.metadata == null) || (mediaController.playbackState == null)) {
-            return false
-        }
+    companion object {
+        private const val REQUEST_CODE_NOTIFICATION = 100
+        private const val REQUEST_CODE_SESSION = 101
 
-        return when (mediaController.playbackState.state) {
-            STATE_ERROR, STATE_NONE, STATE_STOPPED -> false
-            else -> true
-        }
-    }
+        fun createNotificationIntent(context: Context): PendingIntent {
+            val intent = Intent(context, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
+            }
 
-    private fun showMiniPlayer() {
-        binding.containerMiniPlayer.visibility = VISIBLE
-
-        supportFragmentManager.beginTransaction()
-            .setCustomAnimations(
-                R.anim.slide_in_bottom,
-                R.anim.slide_out_bottom,
-                R.anim.slide_in_top,
-                R.anim.slide_out_top
+            return PendingIntent.getActivity(
+                context,
+                REQUEST_CODE_NOTIFICATION,
+                intent,
+                PendingIntent.FLAG_CANCEL_CURRENT
             )
-            .show(miniPlayerFragment)
-            .commitNowAllowingStateLoss()
-    }
+        }
 
-    private fun hideMiniPlayer() {
-        supportFragmentManager.beginTransaction()
-            .hide(miniPlayerFragment)
-            .commitNowAllowingStateLoss()
+        fun createSessionIntent(context: Context): PendingIntent {
+            return PendingIntent.getActivity(
+                context,
+                REQUEST_CODE_SESSION,
+                Intent(context, MainActivity::class.java),
+                PendingIntent.FLAG_UPDATE_CURRENT
+            )
+        }
     }
 }

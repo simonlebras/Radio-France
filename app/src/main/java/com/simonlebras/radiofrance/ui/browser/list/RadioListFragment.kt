@@ -9,6 +9,7 @@ import android.os.Handler
 import android.support.design.widget.Snackbar
 import android.support.v4.content.ContextCompat
 import android.support.v4.media.MediaMetadataCompat
+import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import android.support.v4.media.session.PlaybackStateCompat.STATE_ERROR
 import android.support.v7.app.AppCompatActivity
@@ -30,6 +31,7 @@ import com.simonlebras.radiofrance.data.models.Radio
 import com.simonlebras.radiofrance.data.models.Status
 import com.simonlebras.radiofrance.databinding.FragmentRadioListBinding
 import com.simonlebras.radiofrance.ui.MainViewModel
+import com.simonlebras.radiofrance.ui.browser.player.MiniPlayerFragment
 import com.simonlebras.radiofrance.utils.AppSchedulers
 import dagger.android.support.DaggerFragment
 import io.reactivex.disposables.CompositeDisposable
@@ -42,6 +44,8 @@ import javax.inject.Inject
 class RadioListFragment : DaggerFragment() {
     companion object {
         const val BUNDLE_QUERY = "BUNDLE_QUERY"
+
+        fun newInstance() = RadioListFragment()
     }
 
     @Inject
@@ -51,6 +55,8 @@ class RadioListFragment : DaggerFragment() {
     lateinit var viewModelFactory: ViewModelProvider.Factory
 
     private lateinit var binding: FragmentRadioListBinding
+
+    private lateinit var miniPlayerFragment: MiniPlayerFragment
 
     lateinit var viewModel: MainViewModel
 
@@ -145,6 +151,9 @@ class RadioListFragment : DaggerFragment() {
     override fun onActivityCreated(savedInstanceState: Bundle?) {
         super.onActivityCreated(savedInstanceState)
 
+        miniPlayerFragment =
+                childFragmentManager.findFragmentById(R.id.fragment_mini_player) as MiniPlayerFragment
+
         viewModel = ViewModelProviders.of(requireActivity(), viewModelFactory)
             .get(MainViewModel::class.java)
 
@@ -152,11 +161,17 @@ class RadioListFragment : DaggerFragment() {
 
         viewModel.connection.observe(this, Observer {
             viewModel.loadRadios()
+
+            toggleMiniPlayerVisibility()
         })
 
         viewModel.playbackState.observe(
             viewLifecycleOwner,
-            Observer { onPlaybackStateChanged(it!!) })
+            Observer {
+                onPlaybackStateChanged(it!!)
+                toggleMiniPlayerVisibility()
+            }
+        )
         viewModel.metadata.observe(viewLifecycleOwner, Observer { onMetadataChanged(it!!) })
 
         val initialValue = Pair<List<Radio>, DiffUtil.DiffResult?>(emptyList(), null)
@@ -331,5 +346,45 @@ class RadioListFragment : DaggerFragment() {
 
     private fun updateToolbarTitle(title: String?) {
         binding.partialToolbar.toolbar.title = title ?: getString(R.string.label_radios)
+    }
+
+    private fun toggleMiniPlayerVisibility() {
+        if (shouldShowMiniPlayer()) {
+            showMiniPlayer()
+        } else {
+            hideMiniPlayer()
+        }
+    }
+
+    private fun shouldShowMiniPlayer(): Boolean {
+        val mediaController = MediaControllerCompat.getMediaController(requireActivity())
+        if ((mediaController == null) || (mediaController.metadata == null) || (mediaController.playbackState == null)) {
+            return false
+        }
+
+        return when (mediaController.playbackState.state) {
+            STATE_ERROR, PlaybackStateCompat.STATE_NONE, PlaybackStateCompat.STATE_STOPPED -> false
+            else -> true
+        }
+    }
+
+    private fun showMiniPlayer() {
+        binding.containerMiniPlayer.visibility = VISIBLE
+
+        childFragmentManager.beginTransaction()
+            .setCustomAnimations(
+                R.anim.slide_in_bottom,
+                R.anim.slide_out_bottom,
+                R.anim.slide_in_top,
+                R.anim.slide_out_top
+            )
+            .show(miniPlayerFragment)
+            .commitNowAllowingStateLoss()
+    }
+
+    private fun hideMiniPlayer() {
+        childFragmentManager.beginTransaction()
+            .hide(miniPlayerFragment)
+            .commitNowAllowingStateLoss()
     }
 }

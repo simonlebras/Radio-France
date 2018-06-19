@@ -68,11 +68,31 @@
                 android:paddingBottom="8dp"
                 android:paddingTop="8dp"
                 android:visibility="gone"
-                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintBottom_toTopOf="@id/container_mini_player"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@+id/partial_toolbar"
                 tools:listitem="@layout/list_item_radio" />
+
+            <android.support.v7.widget.CardView
+                android:id="@+id/container_mini_player"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:visibility="gone"
+                app:cardElevation="8dp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/recycler_view">
+
+                <fragment
+                    android:id="@+id/fragment_mini_player"
+                    android:name="com.simonlebras.radiofrance.ui.browser.player.MiniPlayerFragment"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:visibility="gone" />
+
+            </android.support.v7.widget.CardView>
 
             <TextView
                 android:id="@+id/text_no_result"

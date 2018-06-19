@@ -10,6 +10,8 @@ object Versions {
     const val minSdk = 21
     const val targetSdk = 28
 
+    const val androidKTX = "0.3"
+
     const val supportLibrary = "28.0.0-alpha3"
 
     const val constraintLayout = "1.1.2"
@@ -51,6 +53,8 @@ object Dependencies {
         "org.jetbrains.kotlinx:kotlinx-coroutines-core:${Versions.coroutines}"
     const val coroutinesAndroid =
         "org.jetbrains.kotlinx:kotlinx-coroutines-android:${Versions.coroutines}"
+
+    const val androidKTX = "androidx.core:core-ktx:${Versions.androidKTX}"
 
     const val appcompat = "com.android.support:appcompat-v7:${Versions.supportLibrary}"
     const val recyclerview = "com.android.support:recyclerview-v7:${Versions.supportLibrary}"

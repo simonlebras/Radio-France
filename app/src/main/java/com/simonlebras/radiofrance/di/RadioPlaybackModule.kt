@@ -30,24 +30,19 @@ class RadioPlaybackModule {
         context: Context,
         mediaSessionCallback: MediaSessionCallback
     ): MediaSessionCompat {
-        val mediaSession = MediaSessionCompat(context, RadioPlaybackService.TAG)
-        mediaSession.setFlags(MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS or MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS)
-        mediaSession.setCallback(mediaSessionCallback)
+        val mediaSession = MediaSessionCompat(context, RadioPlaybackService.TAG).apply {
+            setFlags(MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS or MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS)
+            setCallback(mediaSessionCallback)
+        }
 
         // PendingIntent for the media button
-        val mediaButtonIntent = Intent(Intent.ACTION_MEDIA_BUTTON)
-        mediaButtonIntent.setClass(context, MediaButtonReceiver::class.java)
-        var pendingIntent = PendingIntent.getBroadcast(context, 0, mediaButtonIntent, 0)
+        val mediaButtonIntent = Intent(Intent.ACTION_MEDIA_BUTTON).apply {
+            setClass(context, MediaButtonReceiver::class.java)
+        }
+        val pendingIntent = PendingIntent.getBroadcast(context, 0, mediaButtonIntent, 0)
         mediaSession.setMediaButtonReceiver(pendingIntent)
 
-        val intent = Intent(context, MainActivity::class.java)
-        pendingIntent = PendingIntent.getActivity(
-            context,
-            MainActivity.REQUEST_CODE_SESSION,
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT
-        )
-        mediaSession.setSessionActivity(pendingIntent)
+        mediaSession.setSessionActivity(MainActivity.createSessionIntent(context))
 
         return mediaSession
     }

@@ -21,13 +21,13 @@ import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import android.support.v4.media.session.PlaybackStateCompat.*
+import androidx.core.graphics.drawable.toBitmap
 import com.bumptech.glide.request.target.SimpleTarget
 import com.bumptech.glide.request.transition.Transition
 import com.simonlebras.radiofrance.BuildConfig
 import com.simonlebras.radiofrance.R
 import com.simonlebras.radiofrance.ui.MainActivity
 import com.simonlebras.radiofrance.ui.utils.mutableTint
-import com.simonlebras.radiofrance.ui.utils.toBitmap
 import com.simonlebras.radiofrance.utils.GlideApp
 import timber.log.Timber
 import javax.inject.Inject
@@ -131,7 +131,7 @@ class RadioNotificationManager @Inject constructor(
 
         placeholder =
                 ContextCompat.getDrawable(context, R.drawable.ic_radio)!!.mutableTint(tint)
-                    .toBitmap(context)
+                    .toBitmap()
     }
 
     override fun onReceive(context: Context, intent: Intent) {
@@ -235,19 +235,6 @@ class RadioNotificationManager @Inject constructor(
         stopNotification()
     }
 
-    private fun createContentIntent(): PendingIntent {
-        val contentIntent = Intent(service, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
-        }
-
-        return PendingIntent.getActivity(
-            service,
-            MainActivity.REQUEST_CODE_NOTIFICATION,
-            contentIntent,
-            PendingIntent.FLAG_CANCEL_CURRENT
-        )
-    }
-
     @TargetApi(Build.VERSION_CODES.O)
     private fun createNotification(): Notification? {
         if ((metadata == null) || (playbackState == null)) {
@@ -291,7 +278,7 @@ class RadioNotificationManager @Inject constructor(
             )
             .setSmallIcon(R.drawable.ic_radio)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-            .setContentIntent(createContentIntent())
+            .setContentIntent(MainActivity.createNotificationIntent(context))
             .setContentTitle(description.title)
             .setContentText(description.subtitle)
             .setOnlyAlertOnce(true)
