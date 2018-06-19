@@ -4,14 +4,16 @@ import android.support.v7.util.DiffUtil
 import com.simonlebras.radiofrance.data.models.Radio
 
 class DiffUtilCallback(
-        private val oldList: List<Radio>,
-        private val newList: List<Radio>
+    private val oldList: List<Radio>,
+    private val newList: List<Radio>
 ) : DiffUtil.Callback() {
     override fun getOldListSize() = oldList.size
 
     override fun getNewListSize() = newList.size
 
-    override fun areItemsTheSame(oldItemPosition: Int, newItemPosition: Int) = oldList[oldItemPosition].id == newList[newItemPosition].id
+    override fun areItemsTheSame(oldItemPosition: Int, newItemPosition: Int) =
+        oldList[oldItemPosition].id == newList[newItemPosition].id
 
-    override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int) = oldList[oldItemPosition] == newList[newItemPosition]
+    override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int) =
+        oldList[oldItemPosition] == newList[newItemPosition]
 }
