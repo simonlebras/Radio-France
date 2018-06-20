@@ -1,19 +1,22 @@
 package com.simonlebras.radiofrance.ui.browser.player
 
+import android.annotation.TargetApi
 import android.content.Context
-import android.graphics.drawable.Animatable
+import android.graphics.drawable.Animatable2
+import android.graphics.drawable.AnimatedVectorDrawable
+import android.graphics.drawable.Drawable
+import android.os.Build
+import android.support.graphics.drawable.Animatable2Compat
+import android.support.graphics.drawable.AnimatedVectorDrawableCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import android.util.AttributeSet
 import android.widget.ImageButton
 import com.simonlebras.radiofrance.R
-import kotlinx.coroutines.experimental.CommonPool
 import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.channels.Channel
 import kotlinx.coroutines.experimental.channels.SendChannel
 import kotlinx.coroutines.experimental.channels.actor
 import kotlinx.coroutines.experimental.channels.consumeEach
-import kotlinx.coroutines.experimental.delay
-import kotlinx.coroutines.experimental.withContext
 import kotlin.properties.Delegates
 
 class PlayPauseButton : ImageButton {
@@ -36,10 +39,6 @@ class PlayPauseButton : ImageButton {
 
     private lateinit var actor: SendChannel<PlaybackStateCompat>
 
-    private val animationDuration by lazy(LazyThreadSafetyMode.NONE) {
-        resources.getInteger(R.integer.play_pause_animation_duration)
-    }
-
     constructor(context: Context) : super(context)
 
     constructor(context: Context, attrs: AttributeSet) : super(context, attrs)
@@ -50,10 +49,13 @@ class PlayPauseButton : ImageButton {
         defStyleAttr
     )
 
+    @TargetApi(Build.VERSION_CODES.M)
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
 
         actor = actor(context = UI, capacity = Channel.CONFLATED) {
+            val animationEndedChannel = Channel<Boolean>()
+
             channel.consumeEach {
                 if (previousPlaybackState == it.state) {
                     return@consumeEach
@@ -81,11 +83,35 @@ class PlayPauseButton : ImageButton {
 
                     setImageResource(animatedDrawable)
 
-                    (drawable as Animatable).start()
+                    if (drawable is AnimatedVectorDrawable) {
+                        with(drawable as AnimatedVectorDrawable) {
+                            registerAnimationCallback(object :
+                                                          Animatable2.AnimationCallback() {
+                                override fun onAnimationEnd(drawable: Drawable?) {
+                                    unregisterAnimationCallback(this)
 
-                    withContext(CommonPool) {
-                        delay(animationDuration)
+                                    animationEndedChannel.offer(true)
+                                }
+                            })
+
+                            start()
+                        }
+                    } else {
+                        with(drawable as AnimatedVectorDrawableCompat) {
+                            registerAnimationCallback(object :
+                                                          Animatable2Compat.AnimationCallback() {
+                                override fun onAnimationEnd(drawable: Drawable?) {
+                                    unregisterAnimationCallback(this)
+
+                                    animationEndedChannel.offer(true)
+                                }
+                            })
+
+                            start()
+                        }
                     }
+
+                    animationEndedChannel.receive()
                 }
 
                 previousPlaybackState = it.state
