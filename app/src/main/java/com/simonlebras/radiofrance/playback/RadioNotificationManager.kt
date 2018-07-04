@@ -26,6 +26,7 @@ import com.bumptech.glide.request.target.SimpleTarget
 import com.bumptech.glide.request.transition.Transition
 import com.simonlebras.radiofrance.BuildConfig
 import com.simonlebras.radiofrance.R
+import com.simonlebras.radiofrance.playback.PlaybackManager.Companion.EXTRA_CONNECTED_CAST
 import com.simonlebras.radiofrance.ui.MainActivity
 import com.simonlebras.radiofrance.ui.utils.mutableTint
 import com.simonlebras.radiofrance.utils.GlideApp
@@ -36,7 +37,7 @@ class RadioNotificationManager @Inject constructor(
     private val context: Context,
     private val service: RadioPlaybackService
 ) : BroadcastReceiver() {
-    private companion object {
+    companion object {
         const val CHANNEL_ID = "${BuildConfig.APPLICATION_ID}.MUSIC_CHANNEL_ID"
 
         const val NOTIFICATION_ID = 1
@@ -116,7 +117,7 @@ class RadioNotificationManager @Inject constructor(
 
         override fun onSessionDestroyed() {
             try {
-                updateSessionToken()
+                updateSessionToken(service.sessionToken)
             } catch (e: RemoteException) {
             }
 
@@ -142,11 +143,7 @@ class RadioNotificationManager @Inject constructor(
             ACTION_NEXT -> transportControls.skipToNext()
             ACTION_STOP_CASTING -> {
                 val stopIntent = Intent(context, RadioPlaybackService::class.java).apply {
-                    action = RadioPlaybackService.ACTION_CMD
-                    putExtra(
-                        RadioPlaybackService.EXTRAS_CMD_NAME,
-                        RadioPlaybackService.CMD_STOP_CASTING
-                    )
+                    action = ACTION_STOP_CASTING
                 }
 
                 service.startService(stopIntent)
@@ -202,18 +199,18 @@ class RadioNotificationManager @Inject constructor(
         }
     }
 
-    fun updateSessionToken() {
-        val token = service.sessionToken
-        if (((sessionToken == null) && (token != null)) ||
-            ((sessionToken != null) && (sessionToken != token))
+    fun updateSessionToken(sessionToken: MediaSessionCompat.Token?) {
+        val token = sessionToken
+        if (((this.sessionToken == null) && (token != null)) ||
+            ((this.sessionToken != null) && (this.sessionToken != token))
         ) {
             if (controller != null) {
                 controller!!.unregisterCallback(callback)
             }
 
-            sessionToken = token
+            this.sessionToken = token
 
-            sessionToken?.let {
+            this.sessionToken?.let {
                 controller = MediaControllerCompat(service, it)
 
                 transportControls = controller!!.transportControls
@@ -286,7 +283,7 @@ class RadioNotificationManager @Inject constructor(
 
         val extras = controller?.extras
         if (extras != null) {
-            val castName = extras.getString(RadioPlaybackService.EXTRA_CONNECTED_CAST)
+            val castName = extras.getString(EXTRA_CONNECTED_CAST)
             if (castName != null) {
                 val castInfo = service.resources.getString(R.string.casting_to_device, castName)
                 builder.setSubText(castInfo)

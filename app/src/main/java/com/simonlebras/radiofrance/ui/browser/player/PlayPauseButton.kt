@@ -17,6 +17,7 @@ import kotlinx.coroutines.experimental.channels.Channel
 import kotlinx.coroutines.experimental.channels.SendChannel
 import kotlinx.coroutines.experimental.channels.actor
 import kotlinx.coroutines.experimental.channels.consumeEach
+import kotlinx.coroutines.experimental.suspendCancellableCoroutine
 import kotlin.properties.Delegates
 
 class PlayPauseButton : ImageButton {
@@ -54,8 +55,6 @@ class PlayPauseButton : ImageButton {
         super.onAttachedToWindow()
 
         actor = actor(context = UI, capacity = Channel.CONFLATED) {
-            val animationEndedChannel = Channel<Boolean>()
-
             channel.consumeEach {
                 if (previousPlaybackState == it.state) {
                     return@consumeEach
@@ -83,35 +82,35 @@ class PlayPauseButton : ImageButton {
 
                     setImageResource(animatedDrawable)
 
-                    if (drawable is AnimatedVectorDrawable) {
-                        with(drawable as AnimatedVectorDrawable) {
-                            registerAnimationCallback(object :
-                                                          Animatable2.AnimationCallback() {
-                                override fun onAnimationEnd(drawable: Drawable?) {
-                                    unregisterAnimationCallback(this)
+                    suspendCancellableCoroutine<Unit> {
+                        if (drawable is AnimatedVectorDrawable) {
+                            with(drawable as AnimatedVectorDrawable) {
+                                registerAnimationCallback(object :
+                                                              Animatable2.AnimationCallback() {
+                                    override fun onAnimationEnd(drawable: Drawable?) {
+                                        unregisterAnimationCallback(this)
 
-                                    animationEndedChannel.offer(true)
-                                }
-                            })
+                                        it.resume(Unit)
+                                    }
+                                })
 
-                            start()
-                        }
-                    } else {
-                        with(drawable as AnimatedVectorDrawableCompat) {
-                            registerAnimationCallback(object :
-                                                          Animatable2Compat.AnimationCallback() {
-                                override fun onAnimationEnd(drawable: Drawable?) {
-                                    unregisterAnimationCallback(this)
+                                start()
+                            }
+                        } else {
+                            with(drawable as AnimatedVectorDrawableCompat) {
+                                registerAnimationCallback(object :
+                                                              Animatable2Compat.AnimationCallback() {
+                                    override fun onAnimationEnd(drawable: Drawable?) {
+                                        unregisterAnimationCallback(this)
 
-                                    animationEndedChannel.offer(true)
-                                }
-                            })
+                                        it.resume(Unit)
+                                    }
+                                })
 
-                            start()
+                                start()
+                            }
                         }
                     }
-
-                    animationEndedChannel.receive()
                 }
 
                 previousPlaybackState = it.state

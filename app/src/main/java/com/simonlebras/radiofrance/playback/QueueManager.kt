@@ -1,106 +1,54 @@
 package com.simonlebras.radiofrance.playback
 
-import android.content.Context
-import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaSessionCompat
-import com.simonlebras.radiofrance.R
-import com.simonlebras.radiofrance.di.ServiceScope
-import com.simonlebras.radiofrance.data.repository.RadioRepository
-import javax.inject.Inject
+import kotlin.properties.Delegates
 
-@ServiceScope
-class QueueManager @Inject constructor(val context: Context, private val radioRepository: RadioRepository) {
-    private companion object {
-        private const val INVALID_INDEX = -1
+class QueueManager(
+    private val queue: List<MediaSessionCompat.QueueItem>,
+    private val callback: Callback
+) {
+    var currentItem by Delegates.observable<MediaSessionCompat.QueueItem?>(null) { _, _, item ->
+        callback.onQueueItemChanged(item!!)
     }
 
-    var listener: Listener? = null
-    val currentRadio: MediaSessionCompat.QueueItem?
-        get() {
-            if (isIndexPlayable(currentIndex)) {
-                return queue[currentIndex]
-            }
-
-            return null
-        }
-
-    private var queue: List<MediaSessionCompat.QueueItem> = emptyList()
-    private var currentIndex = INVALID_INDEX
-
-    fun setCurrentQueueItem(queueId: Long): Boolean {
-        val index = queue.indexOfFirst {
-            it.queueId == queueId
-        }
-
-        return setCurrentIndex(index)
+    private var currentIndex by Delegates.observable(INVALID_INDEX) { _, _, index ->
+        currentItem = queue[index]
     }
 
-    fun setCurrentQueueItem(radioId: String?): Boolean {
-        if (queue.isEmpty() && radioRepository.queue.isNotEmpty()) {
-            queue = radioRepository.queue
-            listener?.onQueueUpdated(context.getString(R.string.app_name), queue)
-        }
-
-        val index = queue.indexOfFirst {
-            it.description.mediaId == radioId
-        }
-
-        return setCurrentIndex(index)
-    }
-
-    fun skipToPrevious(): Boolean {
-        var index = 0
-        if (currentIndex != INVALID_INDEX) {
-            index = currentIndex - 1
+    fun skipToPrevious() {
+        if (currentIndex == INVALID_INDEX) {
+            currentIndex = 0
+        } else {
+            var index = currentIndex - 1
             if (index < 0) {
                 index = queue.size - 1
             }
-        }
 
-        return setCurrentIndex(index)
-    }
-
-    fun skipToNext(): Boolean {
-        var index = currentIndex + 1
-        if (queue.isNotEmpty()) {
-            index %= queue.size
-        }
-
-        return setCurrentIndex(index)
-    }
-
-    fun updateMetadata() {
-        if (queue.isEmpty() || radioRepository.metadata.isEmpty()) {
-            listener?.onMetadataRetrieveError()
-            return
-        }
-
-        val radioId = currentRadio?.description?.mediaId
-        val metadata = radioRepository.metadata[radioId]
-        if (metadata == null) {
-            listener?.onMetadataRetrieveError()
-            return
-        }
-
-        listener?.onMetadataChanged(metadata)
-    }
-
-    private fun isIndexPlayable(index: Int) = index >= 0 && index < queue.size
-
-    private fun setCurrentIndex(index: Int): Boolean {
-        if (isIndexPlayable(index)) {
             currentIndex = index
-            return true
         }
-
-        return false
     }
 
-    interface Listener {
-        fun onQueueUpdated(title: String, queue: List<MediaSessionCompat.QueueItem>)
+    fun skipToNext() {
+        currentIndex = (currentIndex + 1) % queue.size
+    }
 
-        fun onMetadataChanged(metadata: MediaMetadataCompat)
+    fun skipToPosition(position: Long) {
+        currentIndex = queue.indexOfFirst {
+            it.queueId == position
+        }
+    }
 
-        fun onMetadataRetrieveError()
+    fun skipToItem(itemId: String) {
+        currentIndex = queue.indexOfFirst {
+            it.description.mediaId == itemId
+        }
+    }
+
+    interface Callback {
+        fun onQueueItemChanged(item: MediaSessionCompat.QueueItem)
+    }
+
+    private companion object {
+        const val INVALID_INDEX = -1
     }
 }

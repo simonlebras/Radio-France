@@ -19,8 +19,8 @@ import io.reactivex.subjects.BehaviorSubject
 import javax.inject.Inject
 
 class MainViewModel @Inject constructor(
-        private val radioManager: RadioManager,
-        private val appSchedulers: AppSchedulers
+    private val radioManager: RadioManager,
+    private val appSchedulers: AppSchedulers
 ) : ViewModel() {
     val connection = MutableLiveData<MediaControllerCompat>()
 
@@ -39,10 +39,6 @@ class MainViewModel @Inject constructor(
 
     private val searchSubject = BehaviorSubject.createDefault("")
 
-    init {
-        radioManager.connect()
-    }
-
     override fun onCleared() {
         compositeDisposable.dispose()
 
@@ -51,21 +47,20 @@ class MainViewModel @Inject constructor(
         super.onCleared()
     }
 
-
     fun connect() {
         if (!connectionStarted) {
             connectionStarted = true
 
             val disposable = radioManager.connect()
-                    .subscribeWith(object : DisposableSingleObserver<MediaControllerCompat>() {
-                        override fun onSuccess(mediaController: MediaControllerCompat) {
-                            connection.value = mediaController
+                .subscribeWith(object : DisposableSingleObserver<MediaControllerCompat>() {
+                    override fun onSuccess(mediaController: MediaControllerCompat) {
+                        connection.value = mediaController
 
-                            subscribePlaybackUpdates()
-                        }
+                        subscribePlaybackUpdates()
+                    }
 
-                        override fun onError(e: Throwable) {}
-                    })
+                    override fun onError(e: Throwable) {}
+                })
 
             compositeDisposable.add(disposable)
         }
@@ -73,28 +68,28 @@ class MainViewModel @Inject constructor(
 
     private fun subscribePlaybackUpdates() {
         val playbackDisposable = radioManager.playbackStateUpdates()
-                .subscribeWith(object : DisposableObserver<PlaybackStateCompat>() {
-                    override fun onComplete() {}
+            .subscribeWith(object : DisposableObserver<PlaybackStateCompat>() {
+                override fun onComplete() {}
 
-                    override fun onNext(state: PlaybackStateCompat) {
-                        playbackState.value = state
-                    }
+                override fun onNext(state: PlaybackStateCompat) {
+                    playbackState.value = state
+                }
 
-                    override fun onError(e: Throwable) {}
-                })
+                override fun onError(e: Throwable) {}
+            })
 
         compositeDisposable.add(playbackDisposable)
 
         val metadataDisposable = radioManager.metadataUpdates()
-                .subscribeWith(object : DisposableObserver<MediaMetadataCompat>() {
-                    override fun onComplete() {}
+            .subscribeWith(object : DisposableObserver<MediaMetadataCompat>() {
+                override fun onComplete() {}
 
-                    override fun onNext(metadata: MediaMetadataCompat) {
-                        this@MainViewModel.metadata.value = metadata
-                    }
+                override fun onNext(metadata: MediaMetadataCompat) {
+                    this@MainViewModel.metadata.value = metadata
+                }
 
-                    override fun onError(e: Throwable) {}
-                })
+                override fun onError(e: Throwable) {}
+            })
 
         compositeDisposable.add(metadataDisposable)
     }
@@ -104,39 +99,39 @@ class MainViewModel @Inject constructor(
             radioLoadingStarted = true
 
             val disposable = Observables
-                    .combineLatest(
-                            radioManager.loadRadios()
-                                    .subscribeOn(appSchedulers.network)
-                                    .doOnSubscribe { radios.postValue(Resource.loading(null)) }
-                                    .doOnError { radios.postValue(Resource.error(it.message, null)) }
-                                    .retryWhen { retryProcessor }
-                                    .toObservable(),
-                            searchSubject
-                    ) { resource, query ->
-                        Pair(resource, query)
-                    }
-                    .switchMapSingle {
-                        val (resource, query) = it
+                .combineLatest(
+                    radioManager.loadRadios()
+                        .subscribeOn(appSchedulers.network)
+                        .doOnSubscribe { radios.postValue(Resource.loading(null)) }
+                        .doOnError { radios.postValue(Resource.error(it.message, null)) }
+                        .retryWhen { retryProcessor }
+                        .toObservable(),
+                    searchSubject
+                ) { resource, query ->
+                    Pair(resource, query)
+                }
+                .switchMapSingle {
+                    val (resource, query) = it
 
-                        Observable.fromIterable(resource.data!!)
-                                .filter {
-                                    query.isEmpty() || it.name.contains(query, true)
-                                }
-                                .toList()
-                                .map {
-                                    Resource.success(it)
-                                }
-
-                    }
-                    .subscribeWith(object : DisposableObserver<Resource<List<Radio>>>() {
-                        override fun onComplete() {}
-
-                        override fun onNext(resource: Resource<List<Radio>>) {
-                            radios.postValue(resource)
+                    Observable.fromIterable(resource.data!!)
+                        .filter {
+                            query.isEmpty() || it.name.contains(query, true)
+                        }
+                        .toList()
+                        .map {
+                            Resource.success(it)
                         }
 
-                        override fun onError(e: Throwable) {}
-                    })
+                }
+                .subscribeWith(object : DisposableObserver<Resource<List<Radio>>>() {
+                    override fun onComplete() {}
+
+                    override fun onNext(resource: Resource<List<Radio>>) {
+                        radios.postValue(resource)
+                    }
+
+                    override fun onError(e: Throwable) {}
+                })
 
             compositeDisposable.add(disposable)
         }

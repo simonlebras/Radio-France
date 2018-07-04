@@ -9,7 +9,6 @@ import android.support.v4.media.session.PlaybackStateCompat
 import com.simonlebras.radiofrance.data.models.Radio
 import com.simonlebras.radiofrance.data.models.Resource
 import com.simonlebras.radiofrance.playback.RadioPlaybackService
-import com.simonlebras.radiofrance.ui.browser.mappers.RadioMapper
 import com.simonlebras.radiofrance.utils.AppSchedulers
 import io.reactivex.Observable
 import io.reactivex.Single
@@ -18,8 +17,8 @@ import io.reactivex.subjects.PublishSubject
 import javax.inject.Inject
 
 class RadioManagerImpl @Inject constructor(
-        private val context: Context,
-        private val appSchedulers: AppSchedulers
+    private val context: Context,
+    private val appSchedulers: AppSchedulers
 ) : RadioManager {
     private val compositeDisposable = CompositeDisposable()
 
@@ -33,10 +32,10 @@ class RadioManagerImpl @Inject constructor(
     }
 
     private var mediaBrowser: MediaBrowserCompat = MediaBrowserCompat(
-            context,
-            ComponentName(context, RadioPlaybackService::class.java),
-            mediaBrowserConnectionCallback,
-            null
+        context,
+        ComponentName(context, RadioPlaybackService::class.java),
+        mediaBrowserConnectionCallback,
+        null
     )
 
     private lateinit var mediaController: MediaControllerCompat
@@ -45,45 +44,45 @@ class RadioManagerImpl @Inject constructor(
 
     private val playbackUpdates by lazy(LazyThreadSafetyMode.NONE) {
         Observable
-                .create<Any> { emitter ->
-                    val callback = object : MediaControllerCompat.Callback() {
-                        override fun onPlaybackStateChanged(state: PlaybackStateCompat?) {
-                            if (!emitter.isDisposed && state != null) {
-                                emitter.onNext(state)
-                            }
-                        }
-
-                        override fun onMetadataChanged(metadata: MediaMetadataCompat?) {
-                            if (!emitter.isDisposed && metadata != null) {
-                                emitter.onNext(metadata)
-                            }
+            .create<Any> { emitter ->
+                val callback = object : MediaControllerCompat.Callback() {
+                    override fun onPlaybackStateChanged(state: PlaybackStateCompat?) {
+                        if (!emitter.isDisposed && state != null) {
+                            emitter.onNext(state)
                         }
                     }
 
-                    emitter.setCancellable { mediaController.unregisterCallback(callback) }
-
-                    mediaController.playbackState?.let {
-                        emitter.onNext(it)
+                    override fun onMetadataChanged(metadata: MediaMetadataCompat?) {
+                        if (!emitter.isDisposed && metadata != null) {
+                            emitter.onNext(metadata)
+                        }
                     }
-
-                    mediaController.metadata?.let {
-                        emitter.onNext(it)
-                    }
-
-                    mediaController.registerCallback(callback)
                 }
-                .publish()
-                .autoConnect(2) {
-                    compositeDisposable.add(it)
+
+                emitter.setCancellable { mediaController.unregisterCallback(callback) }
+
+                mediaController.playbackState?.let {
+                    emitter.onNext(it)
                 }
+
+                mediaController.metadata?.let {
+                    emitter.onNext(it)
+                }
+
+                mediaController.registerCallback(callback)
+            }
+            .publish()
+            .autoConnect(2) {
+                compositeDisposable.add(it)
+            }
     }
 
     override fun connect(): Single<MediaControllerCompat> {
         return connectionSubject
-                .singleOrError()
-                .doOnSubscribe {
-                    mediaBrowser.connect()
-                }
+            .singleOrError()
+            .doOnSubscribe {
+                mediaBrowser.connect()
+            }
     }
 
     override fun playbackStateUpdates(): Observable<PlaybackStateCompat> {
@@ -96,39 +95,52 @@ class RadioManagerImpl @Inject constructor(
 
     override fun loadRadios(): Single<Resource<List<Radio>>> {
         return Single
-                .create<List<MediaBrowserCompat.MediaItem>> {
-                    val root = mediaBrowser.root
+            .create<List<MediaBrowserCompat.MediaItem>> {
+                val root = mediaBrowser.root
 
-                    mediaBrowser.unsubscribe(root)
-                    mediaBrowser.subscribe(root, object : MediaBrowserCompat.SubscriptionCallback() {
-                        override fun onChildrenLoaded(parentId: String, children: List<MediaBrowserCompat.MediaItem>) {
-                            mediaBrowser.unsubscribe(root)
+                mediaBrowser.unsubscribe(root)
+                mediaBrowser.subscribe(root, object : MediaBrowserCompat.SubscriptionCallback() {
+                    override fun onChildrenLoaded(
+                        parentId: String,
+                        children: List<MediaBrowserCompat.MediaItem>
+                    ) {
+                        mediaBrowser.unsubscribe(root)
 
-                            if (!it.isDisposed) {
-                                it.onSuccess(children)
-                            }
-                        }
-
-                        override fun onError(parentId: String) {
-                            if (!it.isDisposed) {
-                                it.onError(SubscriptionException(parentId))
-                            }
-                        }
-                    })
-
-                    it.setCancellable {
-                        if (mediaBrowser.isConnected) {
-                            mediaBrowser.unsubscribe(root)
+                        if (!it.isDisposed) {
+                            it.onSuccess(children)
                         }
                     }
+
+                    override fun onError(parentId: String) {
+                        if (!it.isDisposed) {
+                            it.onError(SubscriptionException(parentId))
+                        }
+                    }
+                })
+
+                it.setCancellable {
+                    if (mediaBrowser.isConnected) {
+                        mediaBrowser.unsubscribe(root)
+                    }
                 }
-                .observeOn(appSchedulers.computation)
-                .map {
-                    RadioMapper().transform(it)
+            }
+            .observeOn(appSchedulers.computation)
+            .map {
+                it.map {
+                    with(it.description) {
+                        Radio(
+                            mediaId!!,
+                            title.toString(),
+                            description.toString(),
+                            mediaUri.toString(),
+                            iconUri.toString()
+                        )
+                    }
                 }
-                .map {
-                    Resource.success(it)
-                }
+            }
+            .map {
+                Resource.success(it)
+            }
     }
 
     override fun playFromId(id: String) {

@@ -1,8 +1,6 @@
 package com.simonlebras.radiofrance.ui.browser.player
 
-import android.arch.lifecycle.Observer
 import android.arch.lifecycle.ViewModelProvider
-import android.arch.lifecycle.ViewModelProviders
 import android.os.Bundle
 import android.support.v4.content.ContextCompat
 import android.view.LayoutInflater
@@ -12,6 +10,8 @@ import com.simonlebras.radiofrance.R
 import com.simonlebras.radiofrance.databinding.FragmentMiniPlayerBinding
 import com.simonlebras.radiofrance.ui.MainViewModel
 import com.simonlebras.radiofrance.ui.utils.mutableTint
+import com.simonlebras.radiofrance.ui.utils.observeK
+import com.simonlebras.radiofrance.ui.utils.withViewModel
 import com.simonlebras.radiofrance.utils.GlideApp
 import dagger.android.support.DaggerFragment
 import javax.inject.Inject
@@ -32,29 +32,33 @@ class MiniPlayerFragment : DaggerFragment() {
         return binding.root
     }
 
-    override fun onActivityCreated(savedInstanceState: Bundle?) {
-        super.onActivityCreated(savedInstanceState)
-
-        val viewModel = ViewModelProviders.of(requireActivity(), viewModelFactory)
-            .get(MainViewModel::class.java)
-
-        viewModel.connect()
-
-        binding.viewModel = viewModel
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
 
         val tint = ContextCompat.getColor(requireContext(), R.color.colorPrimary)
-
         val drawable =
             ContextCompat.getDrawable(requireContext(), R.drawable.ic_radio)!!.mutableTint(tint)
 
-        binding.glideRequest = GlideApp.with(this)
+        binding.glideRequest = GlideApp.with(this@MiniPlayerFragment)
             .asBitmap()
             .placeholder(drawable)
+    }
 
-        viewModel.playbackState.observe(
-            viewLifecycleOwner,
-            Observer { binding.playbackState = it }
-        )
-        viewModel.metadata.observe(viewLifecycleOwner, Observer { binding.metadata = it })
+    override fun onActivityCreated(savedInstanceState: Bundle?) {
+        super.onActivityCreated(savedInstanceState)
+
+        requireActivity().withViewModel<MainViewModel>(viewModelFactory) {
+            connect()
+
+            binding.viewModel = this
+
+            playbackState.observeK(viewLifecycleOwner) {
+                binding.playbackState = it
+            }
+
+            metadata.observeK(viewLifecycleOwner) {
+                binding.metadata = it
+            }
+        }
     }
 }
