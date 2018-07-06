@@ -94,12 +94,16 @@ class MainViewModel @Inject constructor(
     }
 
     private suspend fun subscribePlaybackUpdates() {
-        radioManager.playbackStateUpdates().consumeEach {
-            playbackState.postValue(it)
+        launch {
+            for (e in radioManager.playbackStateUpdates()) {
+                playbackState.postValue(e)
+            }
         }
 
-        radioManager.metadataUpdates().consumeEach {
-            metadata.postValue(it)
+        launch {
+            for (e in radioManager.metadataUpdates()) {
+                metadata.postValue(e)
+            }
         }
     }
 

@@ -3,13 +3,11 @@ package com.simonlebras.radiofrance.ui.browser.list
 import android.app.SearchManager
 import android.arch.lifecycle.Observer
 import android.arch.lifecycle.ViewModelProvider
-import android.arch.lifecycle.ViewModelProviders
 import android.os.Bundle
 import android.os.Handler
 import android.support.design.widget.Snackbar
 import android.support.v4.content.ContextCompat
 import android.support.v4.media.MediaMetadataCompat
-import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import android.support.v4.media.session.PlaybackStateCompat.STATE_ERROR
 import android.support.v7.app.AppCompatActivity
@@ -32,8 +30,16 @@ import com.simonlebras.radiofrance.databinding.FragmentRadioListBinding
 import com.simonlebras.radiofrance.ui.MainViewModel
 import com.simonlebras.radiofrance.ui.browser.player.MiniPlayerFragment
 import com.simonlebras.radiofrance.ui.utils.observeK
+import com.simonlebras.radiofrance.ui.utils.scan
+import com.simonlebras.radiofrance.ui.utils.withViewModel
 import com.simonlebras.radiofrance.utils.AppContexts
 import dagger.android.support.DaggerFragment
+import kotlinx.coroutines.experimental.Job
+import kotlinx.coroutines.experimental.channels.SendChannel
+import kotlinx.coroutines.experimental.channels.actor
+import kotlinx.coroutines.experimental.channels.consumeEach
+import kotlinx.coroutines.experimental.channels.drop
+import kotlinx.coroutines.experimental.withContext
 import javax.inject.Inject
 
 class RadioListFragment : DaggerFragment() {
@@ -84,6 +90,10 @@ class RadioListFragment : DaggerFragment() {
         introductoryOverlay!!.show()
     }
 
+    private val parentJob = Job()
+
+    private lateinit var updateActor: SendChannel<List<Radio>>
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -92,6 +102,34 @@ class RadioListFragment : DaggerFragment() {
         }
 
         query = savedInstanceState?.getString(BUNDLE_QUERY, null)
+
+        updateActor = actor(context = appContexts.computation, parent = parentJob) {
+            channel
+                .scan(Pair<List<Radio>, DiffUtil.DiffResult?>(emptyList(), null)) { pair, next ->
+                    Pair(
+                        next,
+                        DiffUtil.calculateDiff(DiffUtilCallback(pair.first, next))
+                    )
+                }
+                .drop(1)
+                .consumeEach {
+                    val (radios, diffResult) = it
+
+                    withContext(appContexts.main) {
+                        if (radios.isEmpty()) {
+                            showNoResultView()
+                        } else {
+                            showRecyclerView()
+                        }
+
+                        adapter.radios = radios
+
+                        diffResult!!.dispatchUpdatesTo(adapter)
+
+                        binding.recyclerView.scrollToPosition(0)
+                    }
+                }
+        }
     }
 
     override fun onCreateView(
@@ -145,53 +183,36 @@ class RadioListFragment : DaggerFragment() {
         miniPlayerFragment =
                 childFragmentManager.findFragmentById(R.id.fragment_mini_player) as MiniPlayerFragment
 
-        viewModel = ViewModelProviders.of(requireActivity(), viewModelFactory)
-            .get(MainViewModel::class.java)
+        viewModel = requireActivity().withViewModel<MainViewModel>(viewModelFactory) {
+            connect()
 
-        viewModel.connect()
-
-        viewModel.connection.observeK(this) {
-            viewModel.loadRadios()
-
-            toggleMiniPlayerVisibility()
-        }
-
-        viewModel.playbackState.observeK(viewLifecycleOwner) {
-            onPlaybackStateChanged(it!!)
-            toggleMiniPlayerVisibility()
-        }
-
-        viewModel.metadata.observe(viewLifecycleOwner, Observer { onMetadataChanged(it!!) })
-
-        viewModel.radios.observe(viewLifecycleOwner, Observer {
-            when (it!!.status) {
-                Status.LOADING -> showProgressBar()
-                Status.SUCCESS -> {
-                    val radios = it.data!!
-
-                    if (radios.isEmpty()) {
-                        showNoResultView()
-                    } else {
-                        showRecyclerView()
-                    }
-
-                    val diffResult =
-                        DiffUtil.calculateDiff(DiffUtilCallback(adapter.radios, radios))
-                    adapter.radios = radios
-
-                    diffResult.dispatchUpdatesTo(adapter)
-
-                    binding.recyclerView.scrollToPosition(0)
-
-                    if (!menuSet) {
-                        menuSet = true
-
-                        setHasOptionsMenu(true)
-                    }
-                }
-                Status.ERROR -> showEmptyView()
+            connection.observeK(viewLifecycleOwner) {
+                loadRadios()
             }
-        })
+
+            playbackState.observeK(viewLifecycleOwner) {
+                onPlaybackStateChanged(it!!)
+                toggleMiniPlayerVisibility(it)
+            }
+
+            metadata.observe(viewLifecycleOwner, Observer { onMetadataChanged(it!!) })
+
+            radios.observe(viewLifecycleOwner, Observer {
+                when (it!!.status) {
+                    Status.LOADING -> showProgressBar()
+                    Status.SUCCESS -> {
+                        updateActor.offer(it.data!!)
+
+                        if (!menuSet) {
+                            menuSet = true
+
+                            setHasOptionsMenu(true)
+                        }
+                    }
+                    Status.ERROR -> showEmptyView()
+                }
+            })
+        }
     }
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
@@ -253,6 +274,12 @@ class RadioListFragment : DaggerFragment() {
         super.onSaveInstanceState(outState)
     }
 
+    override fun onDestroy() {
+        parentJob.cancel()
+
+        super.onDestroy()
+    }
+
     private fun onPlaybackStateChanged(playbackState: PlaybackStateCompat) {
         if (playbackState.state == STATE_ERROR) {
             Snackbar.make(view!!, playbackState.errorMessage, Snackbar.LENGTH_LONG)
@@ -306,21 +333,16 @@ class RadioListFragment : DaggerFragment() {
         binding.partialToolbar.toolbar.title = title ?: getString(R.string.label_radios)
     }
 
-    private fun toggleMiniPlayerVisibility() {
-        if (shouldShowMiniPlayer()) {
+    private fun toggleMiniPlayerVisibility(playbackState: PlaybackStateCompat) {
+        if (shouldShowMiniPlayer(playbackState)) {
             showMiniPlayer()
         } else {
             hideMiniPlayer()
         }
     }
 
-    private fun shouldShowMiniPlayer(): Boolean {
-        val mediaController = MediaControllerCompat.getMediaController(requireActivity())
-        if ((mediaController == null) || (mediaController.metadata == null) || (mediaController.playbackState == null)) {
-            return false
-        }
-
-        return when (mediaController.playbackState.state) {
+    private fun shouldShowMiniPlayer(playbackState: PlaybackStateCompat): Boolean {
+        return when (playbackState.state) {
             STATE_ERROR, PlaybackStateCompat.STATE_NONE, PlaybackStateCompat.STATE_STOPPED -> false
             else -> true
         }

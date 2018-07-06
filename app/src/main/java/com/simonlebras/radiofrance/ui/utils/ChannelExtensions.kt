@@ -8,7 +8,6 @@ import kotlinx.coroutines.experimental.channels.filter
 import kotlinx.coroutines.experimental.channels.produce
 import kotlinx.coroutines.experimental.launch
 import kotlinx.coroutines.experimental.selects.whileSelect
-import kotlinx.coroutines.experimental.yield
 import java.util.concurrent.TimeUnit
 
 fun <T> ReceiveChannel<T>.debounce(
@@ -57,11 +56,24 @@ fun <T, R> ReceiveChannel<T>.switchMap(block: suspend (T) -> R): ReceiveChannel<
             job = launch {
                 val result = block(it)
 
-                yield()
-
                 send(result)
             }
         }
 
         job?.join()
+    }
+
+fun <T, R> ReceiveChannel<T>.scan(initialValue: R, accumulator: (R, T) -> R): ReceiveChannel<R> =
+    produce(capacity = CONFLATED) {
+        send(initialValue)
+
+        var previousValue = initialValue
+
+        consumeEach {
+            val newValue = accumulator(previousValue, it)
+
+            previousValue = newValue
+
+            send(newValue)
+        }
     }
