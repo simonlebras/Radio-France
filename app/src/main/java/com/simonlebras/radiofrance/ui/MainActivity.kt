@@ -4,6 +4,7 @@ import android.app.PendingIntent
 import android.arch.lifecycle.ViewModelProvider
 import android.content.Context
 import android.content.Intent
+import android.media.AudioManager
 import android.os.Bundle
 import android.support.v4.media.session.MediaControllerCompat
 import com.simonlebras.radiofrance.R
@@ -14,9 +15,6 @@ import dagger.android.support.DaggerAppCompatActivity
 import javax.inject.Inject
 
 class MainActivity : DaggerAppCompatActivity() {
-    @Inject
-    lateinit var viewModelFactory: ViewModelProvider.Factory
-
     override fun onCreate(savedInstanceState: Bundle?) {
         setTheme(R.style.AppTheme)
 
@@ -29,14 +27,12 @@ class MainActivity : DaggerAppCompatActivity() {
                 .add(R.id.container, RadioListFragment.newInstance())
                 .commit()
         }
+    }
 
-        withViewModel<MainViewModel>(viewModelFactory) {
-            connect()
+    override fun onResume() {
+        super.onResume()
 
-            connection.observeK(this@MainActivity) {
-                MediaControllerCompat.setMediaController(this@MainActivity, it)
-            }
-        }
+        volumeControlStream = AudioManager.STREAM_MUSIC
     }
 
     companion object {

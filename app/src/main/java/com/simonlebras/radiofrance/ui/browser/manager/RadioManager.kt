@@ -1,21 +1,21 @@
 package com.simonlebras.radiofrance.ui.browser.manager
 
+import android.support.v4.media.MediaBrowserCompat
 import android.support.v4.media.MediaMetadataCompat
-import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import com.simonlebras.radiofrance.data.models.Radio
 import com.simonlebras.radiofrance.data.models.Resource
-import io.reactivex.Observable
-import io.reactivex.Single
+import kotlinx.coroutines.experimental.Deferred
+import kotlinx.coroutines.experimental.channels.ReceiveChannel
 
 interface RadioManager {
-    fun connect(): Single<MediaControllerCompat>
+    fun connect(): Deferred<Boolean>
 
-    fun playbackStateUpdates(): Observable<PlaybackStateCompat>
+    fun playbackStateUpdates(): ReceiveChannel<PlaybackStateCompat>
 
-    fun metadataUpdates(): Observable<MediaMetadataCompat>
+    fun metadataUpdates(): ReceiveChannel<MediaMetadataCompat>
 
-    fun loadRadios(): Single<Resource<List<Radio>>>
+    fun loadRadios(): Deferred<Resource<List<Radio>>>
 
     fun playFromId(id: String)
 

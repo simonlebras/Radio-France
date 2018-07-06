@@ -3,44 +3,78 @@ package com.simonlebras.radiofrance.ui
 import android.arch.lifecycle.MutableLiveData
 import android.arch.lifecycle.ViewModel
 import android.support.v4.media.MediaMetadataCompat
-import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import com.simonlebras.radiofrance.data.models.Radio
 import com.simonlebras.radiofrance.data.models.Resource
 import com.simonlebras.radiofrance.ui.browser.manager.RadioManager
-import com.simonlebras.radiofrance.utils.AppSchedulers
-import io.reactivex.Observable
-import io.reactivex.disposables.CompositeDisposable
-import io.reactivex.observers.DisposableObserver
-import io.reactivex.observers.DisposableSingleObserver
-import io.reactivex.processors.PublishProcessor
-import io.reactivex.rxkotlin.Observables
-import io.reactivex.subjects.BehaviorSubject
+import com.simonlebras.radiofrance.ui.browser.manager.SubscriptionException
+import com.simonlebras.radiofrance.ui.utils.debounce
+import com.simonlebras.radiofrance.ui.utils.distinctUntilChanged
+import com.simonlebras.radiofrance.ui.utils.switchMap
+import com.simonlebras.radiofrance.utils.AppContexts
+import kotlinx.coroutines.experimental.Job
+import kotlinx.coroutines.experimental.channels.Channel.Factory.CONFLATED
+import kotlinx.coroutines.experimental.channels.actor
+import kotlinx.coroutines.experimental.channels.consumeEach
+import kotlinx.coroutines.experimental.channels.map
+import kotlinx.coroutines.experimental.launch
 import javax.inject.Inject
 
 class MainViewModel @Inject constructor(
     private val radioManager: RadioManager,
-    private val appSchedulers: AppSchedulers
+    private val appContexts: AppContexts
 ) : ViewModel() {
-    val connection = MutableLiveData<MediaControllerCompat>()
+    val connection = MutableLiveData<Boolean>()
 
     val playbackState = MutableLiveData<PlaybackStateCompat>()
     val metadata = MutableLiveData<MediaMetadataCompat>()
 
+    @Volatile
+    lateinit var initialRadios: List<Radio>
     val radios = MutableLiveData<Resource<List<Radio>>>()
 
-    private val compositeDisposable = CompositeDisposable()
+    private val parentJob = Job()
 
-    private var connectionStarted = false
+    private var connected = false
+    private var radioLoaded = false
 
-    private var radioLoadingStarted = false
+    private val loadRadiosActor =
+        actor<Unit>(context = appContexts.network, parent = parentJob) {
+            channel.consumeEach {
+                radios.postValue(Resource.loading(null))
 
-    private val retryProcessor = PublishProcessor.create<Boolean>()
+                try {
+                    val radios = radioManager.loadRadios().await()
 
-    private val searchSubject = BehaviorSubject.createDefault("")
+                    initialRadios = radios.data!!
+
+                    this@MainViewModel.radios.postValue(radios)
+                } catch (e: SubscriptionException) {
+                    radios.postValue(Resource.error(e.message, null))
+                }
+            }
+        }
+
+    private val searchActor =
+        actor<String>(context = appContexts.computation, parent = parentJob, capacity = CONFLATED) {
+            channel
+                .debounce(300)
+                .map {
+                    it.trim()
+                }
+                .distinctUntilChanged()
+                .switchMap { query ->
+                    initialRadios.filter {
+                        query.isEmpty() || it.name.contains(query, true)
+                    }
+                }
+                .consumeEach {
+                    radios.postValue(Resource.success(it))
+                }
+        }
 
     override fun onCleared() {
-        compositeDisposable.dispose()
+        parentJob.cancel()
 
         radioManager.clear()
 
@@ -48,102 +82,43 @@ class MainViewModel @Inject constructor(
     }
 
     fun connect() {
-        if (!connectionStarted) {
-            connectionStarted = true
+        if (!connected) {
+            connected = true
 
-            val disposable = radioManager.connect()
-                .subscribeWith(object : DisposableSingleObserver<MediaControllerCompat>() {
-                    override fun onSuccess(mediaController: MediaControllerCompat) {
-                        connection.value = mediaController
+            launch(context = appContexts.network, parent = parentJob) {
+                connection.postValue(radioManager.connect().await())
 
-                        subscribePlaybackUpdates()
-                    }
-
-                    override fun onError(e: Throwable) {}
-                })
-
-            compositeDisposable.add(disposable)
+                subscribePlaybackUpdates()
+            }
         }
     }
 
-    private fun subscribePlaybackUpdates() {
-        val playbackDisposable = radioManager.playbackStateUpdates()
-            .subscribeWith(object : DisposableObserver<PlaybackStateCompat>() {
-                override fun onComplete() {}
+    private suspend fun subscribePlaybackUpdates() {
+        radioManager.playbackStateUpdates().consumeEach {
+            playbackState.postValue(it)
+        }
 
-                override fun onNext(state: PlaybackStateCompat) {
-                    playbackState.value = state
-                }
-
-                override fun onError(e: Throwable) {}
-            })
-
-        compositeDisposable.add(playbackDisposable)
-
-        val metadataDisposable = radioManager.metadataUpdates()
-            .subscribeWith(object : DisposableObserver<MediaMetadataCompat>() {
-                override fun onComplete() {}
-
-                override fun onNext(metadata: MediaMetadataCompat) {
-                    this@MainViewModel.metadata.value = metadata
-                }
-
-                override fun onError(e: Throwable) {}
-            })
-
-        compositeDisposable.add(metadataDisposable)
+        radioManager.metadataUpdates().consumeEach {
+            metadata.postValue(it)
+        }
     }
 
     fun loadRadios() {
-        if (!radioLoadingStarted) {
-            radioLoadingStarted = true
+        if (!radioLoaded) {
+            radioLoaded = true
 
-            val disposable = Observables
-                .combineLatest(
-                    radioManager.loadRadios()
-                        .subscribeOn(appSchedulers.network)
-                        .doOnSubscribe { radios.postValue(Resource.loading(null)) }
-                        .doOnError { radios.postValue(Resource.error(it.message, null)) }
-                        .retryWhen { retryProcessor }
-                        .toObservable(),
-                    searchSubject
-                ) { resource, query ->
-                    Pair(resource, query)
-                }
-                .switchMapSingle {
-                    val (resource, query) = it
-
-                    Observable.fromIterable(resource.data!!)
-                        .filter {
-                            query.isEmpty() || it.name.contains(query, true)
-                        }
-                        .toList()
-                        .map {
-                            Resource.success(it)
-                        }
-
-                }
-                .subscribeWith(object : DisposableObserver<Resource<List<Radio>>>() {
-                    override fun onComplete() {}
-
-                    override fun onNext(resource: Resource<List<Radio>>) {
-                        radios.postValue(resource)
-                    }
-
-                    override fun onError(e: Throwable) {}
-                })
-
-            compositeDisposable.add(disposable)
+            loadRadiosActor.offer(Unit)
         }
     }
 
-    fun searchRadios(query: String) {
-        searchSubject.onNext(query)
+    fun retryLoadRadios() {
+        loadRadiosActor.offer(Unit)
     }
 
-    fun retryLoadRadios() {
-        retryProcessor.offer(true)
+    fun searchRadios(query: String) {
+        searchActor.offer(query)
     }
+
 
     fun playFromId(id: String) {
         radioManager.playFromId(id)

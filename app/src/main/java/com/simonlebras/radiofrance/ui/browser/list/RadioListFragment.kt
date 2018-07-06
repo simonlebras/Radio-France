@@ -25,20 +25,15 @@ import com.bumptech.glide.util.FixedPreloadSizeProvider
 import com.google.android.gms.cast.framework.*
 import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.GoogleApiAvailability
-import com.jakewharton.rxbinding2.support.v7.widget.queryTextChanges
 import com.simonlebras.radiofrance.R
 import com.simonlebras.radiofrance.data.models.Radio
 import com.simonlebras.radiofrance.data.models.Status
 import com.simonlebras.radiofrance.databinding.FragmentRadioListBinding
 import com.simonlebras.radiofrance.ui.MainViewModel
 import com.simonlebras.radiofrance.ui.browser.player.MiniPlayerFragment
-import com.simonlebras.radiofrance.utils.AppSchedulers
+import com.simonlebras.radiofrance.ui.utils.observeK
+import com.simonlebras.radiofrance.utils.AppContexts
 import dagger.android.support.DaggerFragment
-import io.reactivex.disposables.CompositeDisposable
-import io.reactivex.observers.DisposableObserver
-import io.reactivex.processors.PublishProcessor
-import io.reactivex.subscribers.DisposableSubscriber
-import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 class RadioListFragment : DaggerFragment() {
@@ -49,7 +44,7 @@ class RadioListFragment : DaggerFragment() {
     }
 
     @Inject
-    lateinit var appSchedulers: AppSchedulers
+    lateinit var appContexts: AppContexts
 
     @Inject
     lateinit var viewModelFactory: ViewModelProvider.Factory
@@ -62,12 +57,10 @@ class RadioListFragment : DaggerFragment() {
 
     private lateinit var adapter: RadioListAdapter
 
-    private val compositeDisposable = CompositeDisposable()
-
-    private val radioSubject = PublishProcessor.create<List<Radio>>()
-
     private lateinit var searchView: SearchView
     private var query: String? = null
+
+    private var menuSet = false
 
     private var mediaRouteMenuItem: MenuItem? = null
 
@@ -97,8 +90,6 @@ class RadioListFragment : DaggerFragment() {
         if (GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(context) == ConnectionResult.SUCCESS) {
             castContext = CastContext.getSharedInstance(requireContext())
         }
-
-        setHasOptionsMenu(true)
 
         query = savedInstanceState?.getString(BUNDLE_QUERY, null)
     }
@@ -159,38 +150,24 @@ class RadioListFragment : DaggerFragment() {
 
         viewModel.connect()
 
-        viewModel.connection.observe(this, Observer {
+        viewModel.connection.observeK(this) {
             viewModel.loadRadios()
 
             toggleMiniPlayerVisibility()
-        })
+        }
 
-        viewModel.playbackState.observe(
-            viewLifecycleOwner,
-            Observer {
-                onPlaybackStateChanged(it!!)
-                toggleMiniPlayerVisibility()
-            }
-        )
+        viewModel.playbackState.observeK(viewLifecycleOwner) {
+            onPlaybackStateChanged(it!!)
+            toggleMiniPlayerVisibility()
+        }
+
         viewModel.metadata.observe(viewLifecycleOwner, Observer { onMetadataChanged(it!!) })
 
-        val initialValue = Pair<List<Radio>, DiffUtil.DiffResult?>(emptyList(), null)
-        val disposable = radioSubject
-            .scan(initialValue) { pair, next ->
-                Pair(
-                    next,
-                    DiffUtil.calculateDiff(DiffUtilCallback(pair.first, next))
-                )
-            }
-            .skip(1)
-            .subscribeOn(appSchedulers.computation)
-            .observeOn(appSchedulers.main)
-            .subscribeWith(object :
-                               DisposableSubscriber<Pair<List<Radio>, DiffUtil.DiffResult?>>() {
-                override fun onComplete() {}
-
-                override fun onNext(pair: Pair<List<Radio>, DiffUtil.DiffResult?>) {
-                    val (radios, diffResult) = pair
+        viewModel.radios.observe(viewLifecycleOwner, Observer {
+            when (it!!.status) {
+                Status.LOADING -> showProgressBar()
+                Status.SUCCESS -> {
+                    val radios = it.data!!
 
                     if (radios.isEmpty()) {
                         showNoResultView()
@@ -198,21 +175,20 @@ class RadioListFragment : DaggerFragment() {
                         showRecyclerView()
                     }
 
+                    val diffResult =
+                        DiffUtil.calculateDiff(DiffUtilCallback(adapter.radios, radios))
                     adapter.radios = radios
-                    diffResult!!.dispatchUpdatesTo(adapter)
+
+                    diffResult.dispatchUpdatesTo(adapter)
 
                     binding.recyclerView.scrollToPosition(0)
+
+                    if (!menuSet) {
+                        menuSet = true
+
+                        setHasOptionsMenu(true)
+                    }
                 }
-
-                override fun onError(e: Throwable) {}
-            })
-
-        compositeDisposable.add(disposable)
-
-        viewModel.radios.observe(viewLifecycleOwner, Observer {
-            when (it!!.status) {
-                Status.LOADING -> showProgressBar()
-                Status.SUCCESS -> radioSubject.offer(it.data)
                 Status.ERROR -> showEmptyView()
             }
         })
@@ -243,27 +219,15 @@ class RadioListFragment : DaggerFragment() {
             searchView.clearFocus()
         }
 
-        val disposable = searchView.queryTextChanges()
-            .skipInitialValue()
-            .throttleLast(100, TimeUnit.MILLISECONDS, appSchedulers.computation)
-            .debounce(200, TimeUnit.MILLISECONDS, appSchedulers.computation)
-            .map(CharSequence::toString)
-            .map(String::trim)
-            .distinctUntilChanged()
-            .observeOn(appSchedulers.main)
-            .subscribeWith(object : DisposableObserver<String>() {
-                override fun onComplete() {
-                }
+        searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+            override fun onQueryTextChange(query: String): Boolean {
+                viewModel.searchRadios(query)
 
-                override fun onNext(query: String) {
-                    viewModel.searchRadios(query)
-                }
+                return true
+            }
 
-                override fun onError(e: Throwable) {
-                }
-            })
-
-        compositeDisposable.add(disposable)
+            override fun onQueryTextSubmit(query: String) = false
+        })
     }
 
     override fun onResume() {
@@ -287,12 +251,6 @@ class RadioListFragment : DaggerFragment() {
         )
 
         super.onSaveInstanceState(outState)
-    }
-
-    override fun onDestroyView() {
-        compositeDisposable.clear()
-
-        super.onDestroyView()
     }
 
     private fun onPlaybackStateChanged(playbackState: PlaybackStateCompat) {

@@ -134,12 +134,6 @@ dependencies {
     implementation Dependencies.daggerAndroidSupport
     kapt Dependencies.daggerAndroidProcessor
 
-    implementation Dependencies.rxjava
-    implementation Dependencies.rxandroid
-    implementation Dependencies.rxkotlin
-    implementation Dependencies.rxbindingKotlin
-    implementation Dependencies.rxbindingAppcompatKotlin
-
     implementation Dependencies.okhttp
 
     implementation(Dependencies.glide) {
@@ -157,8 +151,6 @@ dependencies {
 
     debugImplementation Dependencies.leakcanary
     releaseImplementation Dependencies.leakcanaryNoOp
-
-    debugImplementation Dependencies.rxlint
 
     implementation Dependencies.crashlytics
 }
