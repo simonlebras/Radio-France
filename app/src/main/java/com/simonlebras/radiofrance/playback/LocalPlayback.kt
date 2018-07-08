@@ -12,7 +12,7 @@ import android.media.AudioManager
 import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.PowerManager
-import android.support.v4.content.ContextCompat
+import androidx.core.content.ContextCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import android.support.v4.media.session.PlaybackStateCompat.*

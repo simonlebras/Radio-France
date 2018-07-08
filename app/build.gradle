@@ -9,6 +9,8 @@ apply plugin: 'com.google.firebase.firebase-perf'
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-kapt'
 
+apply plugin: "androidx.navigation.safeargs"
+
 apply plugin: 'io.fabric'
 
 apply plugin: 'com.getkeepsafe.dexcount'
@@ -28,7 +30,7 @@ android {
         targetSdkVersion Versions.targetSdk
         versionCode gitVersionCode
         versionName gitVersionName
-        testInstrumentationRunner 'android.support.test.runner.AndroidJUnitRunner'
+        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
         vectorDrawables.useSupportLibrary = true
         resConfigs 'fr'
     }
@@ -107,19 +109,26 @@ dependencies {
     implementation Dependencies.coroutinesCore
     implementation Dependencies.coroutinesAndroid
 
-    implementation Dependencies.androidKTX
-
     implementation Dependencies.appcompat
     implementation Dependencies.recyclerview
-    implementation Dependencies.cardview
     implementation Dependencies.coordinatorlayout
-    implementation Dependencies.design
+    implementation Dependencies.material
     implementation Dependencies.mediarouter
+    implementation Dependencies.fragment
+    implementation Dependencies.fragmentKtx
 
-    implementation Dependencies.constraintLayout
+    implementation Dependencies.constraintlayout
+
+    implementation Dependencies.coreKtx
 
     implementation Dependencies.lifecycle
     implementation Dependencies.lifecycleJava8
+    implementation Dependencies.lifecycleViewModelKtx
+
+    implementation Dependencies.navigationFragment
+    implementation Dependencies.navigationUi
+    implementation Dependencies.navigationFragmentKtx
+    implementation Dependencies.navigationUiKtx
 
     implementation Dependencies.playServicesCastFramework
 

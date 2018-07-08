@@ -19,6 +19,8 @@ buildscript {
         classpath 'com.google.gms:google-services:4.0.1'
 
         classpath 'com.google.firebase:firebase-plugins:1.1.5'
+
+        classpath "android.arch.navigation:navigation-safe-args-gradle-plugin:${Versions.navigation}"
     }
 }
 
@@ -31,6 +33,10 @@ allprojects {
     repositories {
         google()
         jcenter()
+        maven {
+            name 'glide-snapshot'
+            url 'http://oss.sonatype.org/content/repositories/snapshots'
+        }
     }
 }
 

@@ -1,7 +1,7 @@
 package com.simonlebras.radiofrance.ui.utils
 
-import android.arch.lifecycle.ViewModel
-import android.arch.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import javax.inject.Inject
 import javax.inject.Provider
 import javax.inject.Singleton

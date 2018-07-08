@@ -1,7 +1,7 @@
 package com.simonlebras.radiofrance.utils
 
 import android.content.Context
-import android.support.annotation.Keep
+import androidx.annotation.Keep
 import com.google.android.gms.cast.framework.CastOptions
 import com.google.android.gms.cast.framework.OptionsProvider
 import com.simonlebras.radiofrance.R

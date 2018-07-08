@@ -3,9 +3,9 @@ package com.simonlebras.radiofrance.ui.browser.list
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Rect
-import android.support.v7.widget.RecyclerView
 import android.view.View
 import androidx.core.view.forEach
+import androidx.recyclerview.widget.RecyclerView
 
 class DividerItemDecoration(color: Int, width: Float) : RecyclerView.ItemDecoration() {
     private val paint = Paint().apply {
@@ -16,10 +16,10 @@ class DividerItemDecoration(color: Int, width: Float) : RecyclerView.ItemDecorat
     private val originalAlpha = paint.alpha
 
     override fun getItemOffsets(
-        outRect: Rect,
-        view: View,
-        parent: RecyclerView,
-        state: RecyclerView.State
+            outRect: Rect,
+            view: View,
+            parent: RecyclerView,
+            state: RecyclerView.State
     ) {
         val position = (view.layoutParams as RecyclerView.LayoutParams).viewAdapterPosition
         if (position < state.itemCount) {

@@ -1,7 +1,7 @@
 package com.simonlebras.radiofrance.ui
 
-import android.arch.lifecycle.MutableLiveData
-import android.arch.lifecycle.ViewModel
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.ViewModel
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import com.simonlebras.radiofrance.data.models.Radio

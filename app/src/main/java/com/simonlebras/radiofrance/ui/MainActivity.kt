@@ -1,18 +1,14 @@
 package com.simonlebras.radiofrance.ui
 
 import android.app.PendingIntent
-import android.arch.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelProvider
 import android.content.Context
 import android.content.Intent
 import android.media.AudioManager
 import android.os.Bundle
-import android.support.v4.media.session.MediaControllerCompat
 import com.simonlebras.radiofrance.R
 import com.simonlebras.radiofrance.ui.browser.list.RadioListFragment
-import com.simonlebras.radiofrance.ui.utils.observeK
-import com.simonlebras.radiofrance.ui.utils.withViewModel
 import dagger.android.support.DaggerAppCompatActivity
-import javax.inject.Inject
 
 class MainActivity : DaggerAppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {

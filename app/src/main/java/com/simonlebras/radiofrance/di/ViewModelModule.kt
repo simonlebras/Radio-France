@@ -1,7 +1,7 @@
 package com.simonlebras.radiofrance.di
 
-import android.arch.lifecycle.ViewModel
-import android.arch.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import com.simonlebras.radiofrance.ui.MainViewModel
 import com.simonlebras.radiofrance.ui.browser.manager.RadioManager
 import com.simonlebras.radiofrance.ui.browser.manager.RadioManagerImpl

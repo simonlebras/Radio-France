@@ -4,8 +4,8 @@ import android.app.Service
 import android.content.Intent
 import android.os.Bundle
 import android.support.v4.media.MediaBrowserCompat
-import android.support.v4.media.MediaBrowserServiceCompat
-import android.support.v4.media.session.MediaButtonReceiver
+import androidx.media.MediaBrowserServiceCompat
+import androidx.media.session.MediaButtonReceiver
 import com.simonlebras.radiofrance.R
 import com.simonlebras.radiofrance.data.repository.MediaRepository
 import com.simonlebras.radiofrance.utils.AppContexts
