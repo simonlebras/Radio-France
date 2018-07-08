@@ -121,8 +121,6 @@ dependencies {
     implementation Dependencies.lifecycle
     implementation Dependencies.lifecycleJava8
 
-    kapt Dependencies.databinding
-
     implementation Dependencies.playServicesCastFramework
 
     implementation Dependencies.firebaseCore

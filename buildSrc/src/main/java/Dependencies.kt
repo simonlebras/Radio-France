@@ -1,6 +1,4 @@
 object Versions {
-    const val androidPlugin = "3.1.3"
-
     const val kotlin = "1.2.51"
 
     const val coroutines = "0.23.4"
@@ -43,9 +41,9 @@ object Dependencies {
     const val kotlinStdlib = "org.jetbrains.kotlin:kotlin-stdlib-jdk8:${Versions.kotlin}"
 
     const val coroutinesCore =
-        "org.jetbrains.kotlinx:kotlinx-coroutines-core:${Versions.coroutines}"
+            "org.jetbrains.kotlinx:kotlinx-coroutines-core:${Versions.coroutines}"
     const val coroutinesAndroid =
-        "org.jetbrains.kotlinx:kotlinx-coroutines-android:${Versions.coroutines}"
+            "org.jetbrains.kotlinx:kotlinx-coroutines-android:${Versions.coroutines}"
 
     const val androidKTX = "androidx.core:core-ktx:${Versions.androidKTX}"
 
@@ -57,26 +55,24 @@ object Dependencies {
     const val mediarouter = "com.android.support:mediarouter-v7:${Versions.supportLibrary}"
 
     const val constraintLayout =
-        "com.android.support.constraint:constraint-layout:${Versions.constraintLayout}"
+            "com.android.support.constraint:constraint-layout:${Versions.constraintLayout}"
 
     const val lifecycle = "android.arch.lifecycle:extensions:${Versions.lifecycle}"
     const val lifecycleJava8 = "android.arch.lifecycle:common-java8:${Versions.lifecycle}"
 
-    const val databinding = "com.android.databinding:compiler:${Versions.androidPlugin}"
-
     const val playServicesCastFramework =
-        "com.google.android.gms:play-services-cast-framework:${Versions.playServices}"
+            "com.google.android.gms:play-services-cast-framework:${Versions.playServices}"
 
     const val firebaseCore = "com.google.firebase:firebase-core:${Versions.firebaseCore}"
     const val firebasePerf = "com.google.firebase:firebase-perf:${Versions.firebasePerf}"
     const val firebaseFirestore =
-        "com.google.firebase:firebase-firestore:${Versions.firebaseFirestore}"
+            "com.google.firebase:firebase-firestore:${Versions.firebaseFirestore}"
 
     const val dagger = "com.google.dagger:dagger:${Versions.dagger}"
     const val daggerCompiler = "com.google.dagger:dagger-compiler:${Versions.dagger}"
     const val daggerAndroidSupport = "com.google.dagger:dagger-android-support:${Versions.dagger}"
     const val daggerAndroidProcessor =
-        "com.google.dagger:dagger-android-processor:${Versions.dagger}"
+            "com.google.dagger:dagger-android-processor:${Versions.dagger}"
 
     const val okhttp = "com.squareup.okhttp3:okhttp:${Versions.okhttp}"
 
@@ -84,7 +80,7 @@ object Dependencies {
     const val glideCompiler = "com.github.bumptech.glide:compiler:${Versions.glide}"
     const val glideOkhttp = "com.github.bumptech.glide:okhttp3-integration:${Versions.glide}"
     const val glideRecyclerview =
-        "com.github.bumptech.glide:recyclerview-integration:${Versions.glide}"
+            "com.github.bumptech.glide:recyclerview-integration:${Versions.glide}"
 
     const val exoplayerCore = "com.google.android.exoplayer:exoplayer-core:${Versions.exoplayer}"
 
@@ -92,7 +88,7 @@ object Dependencies {
 
     const val leakcanary = "com.squareup.leakcanary:leakcanary-android:${Versions.leakcanary}"
     const val leakcanaryNoOp =
-        "com.squareup.leakcanary:leakcanary-android-no-op:${Versions.leakcanary}"
+            "com.squareup.leakcanary:leakcanary-android-no-op:${Versions.leakcanary}"
 
     const val crashlytics = "com.crashlytics.sdk.android:crashlytics:${Versions.crashlytics}"
 }
