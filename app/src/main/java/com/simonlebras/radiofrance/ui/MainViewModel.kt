@@ -1,11 +1,11 @@
 package com.simonlebras.radiofrance.ui
 
-import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.ViewModel
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.PlaybackStateCompat
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.ViewModel
 import com.simonlebras.radiofrance.data.models.Radio
-import com.simonlebras.radiofrance.data.models.Resource
+import com.simonlebras.radiofrance.data.models.Status
 import com.simonlebras.radiofrance.ui.browser.manager.RadioManager
 import com.simonlebras.radiofrance.ui.browser.manager.SubscriptionException
 import com.simonlebras.radiofrance.ui.utils.debounce
@@ -21,17 +21,19 @@ import kotlinx.coroutines.experimental.launch
 import javax.inject.Inject
 
 class MainViewModel @Inject constructor(
-    private val radioManager: RadioManager,
-    private val appContexts: AppContexts
+        private val radioManager: RadioManager,
+        private val appContexts: AppContexts
 ) : ViewModel() {
     val connection = MutableLiveData<Boolean>()
 
     val playbackState = MutableLiveData<PlaybackStateCompat>()
     val metadata = MutableLiveData<MediaMetadataCompat>()
 
+    val status = MutableLiveData<Status>()
+
     @Volatile
     lateinit var initialRadios: List<Radio>
-    val radios = MutableLiveData<Resource<List<Radio>>>()
+    val radios = MutableLiveData<List<Radio>>()
 
     private val parentJob = Job()
 
@@ -39,39 +41,39 @@ class MainViewModel @Inject constructor(
     private var radioLoaded = false
 
     private val loadRadiosActor =
-        actor<Unit>(context = appContexts.network, parent = parentJob) {
-            channel.consumeEach {
-                radios.postValue(Resource.loading(null))
+            actor<Unit>(context = appContexts.network, parent = parentJob) {
+                channel.consumeEach {
+                    status.postValue(Status.LOADING)
 
-                try {
-                    val radios = radioManager.loadRadios().await()
+                    try {
+                        initialRadios = radioManager.loadRadios()
+                                .await()
 
-                    initialRadios = radios.data!!
-
-                    this@MainViewModel.radios.postValue(radios)
-                } catch (e: SubscriptionException) {
-                    radios.postValue(Resource.error(e.message, null))
-                }
-            }
-        }
-
-    private val searchActor =
-        actor<String>(context = appContexts.computation, parent = parentJob, capacity = CONFLATED) {
-            channel
-                .debounce(300)
-                .map {
-                    it.trim()
-                }
-                .distinctUntilChanged()
-                .switchMap { query ->
-                    initialRadios.filter {
-                        query.isEmpty() || it.name.contains(query, true)
+                        status.postValue(Status.SUCCESS)
+                        radios.postValue(initialRadios)
+                    } catch (e: SubscriptionException) {
+                        status.postValue(Status.ERROR)
                     }
                 }
-                .consumeEach {
-                    radios.postValue(Resource.success(it))
-                }
-        }
+            }
+
+    private val searchActor =
+            actor<String>(context = appContexts.computation, parent = parentJob, capacity = CONFLATED) {
+                channel
+                        .debounce(300)
+                        .map {
+                            it.trim()
+                        }
+                        .distinctUntilChanged()
+                        .switchMap { query ->
+                            initialRadios.filter {
+                                query.isEmpty() || it.name.contains(query, true)
+                            }
+                        }
+                        .consumeEach {
+                            radios.postValue(it)
+                        }
+            }
 
     override fun onCleared() {
         parentJob.cancel()

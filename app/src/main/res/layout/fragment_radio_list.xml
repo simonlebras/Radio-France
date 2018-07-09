@@ -3,6 +3,22 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <data>
+
+        <import type="com.simonlebras.radiofrance.data.models.Status" />
+
+        <import type="com.simonlebras.radiofrance.data.models.Radio" />
+
+        <variable
+            name="status"
+            type="com.simonlebras.radiofrance.data.models.Status" />
+
+        <variable
+            name="radios"
+            type="java.util.List&lt;Radio>" />
+
+    </data>
+
     <androidx.coordinatorlayout.widget.CoordinatorLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -24,24 +40,24 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
-                android:layout_marginBottom="8dp"
-                android:layout_marginEnd="8dp"
                 android:layout_marginStart="8dp"
                 android:layout_marginTop="8dp"
+                android:layout_marginEnd="8dp"
+                android:layout_marginBottom="8dp"
                 android:gravity="center"
                 android:orientation="vertical"
-                android:visibility="gone"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@+id/partial_toolbar">
+                app:layout_constraintTop_toBottomOf="@+id/partial_toolbar"
+                app:visibleGone="@{status == Status.ERROR}">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginEnd="16dp"
                     android:layout_marginStart="16dp"
                     android:layout_marginTop="16dp"
+                    android:layout_marginEnd="16dp"
                     android:ellipsize="end"
                     android:maxLines="1"
                     android:text="@string/empty_view_text"
@@ -65,13 +81,13 @@
                 android:layout_width="0dp"
                 android:layout_height="0dp"
                 android:clipToPadding="false"
-                android:paddingBottom="8dp"
                 android:paddingTop="8dp"
-                android:visibility="gone"
+                android:paddingBottom="8dp"
                 app:layout_constraintBottom_toTopOf="@id/container_mini_player"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@+id/partial_toolbar"
+                app:visibleGone="@{status == Status.SUCCESS &amp;&amp; radios.size() > 0}"
                 tools:listitem="@layout/list_item_radio" />
 
             <androidx.cardview.widget.CardView
@@ -99,17 +115,17 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
-                android:layout_marginBottom="8dp"
-                android:layout_marginEnd="8dp"
                 android:layout_marginStart="8dp"
                 android:layout_marginTop="8dp"
+                android:layout_marginEnd="8dp"
+                android:layout_marginBottom="8dp"
                 android:ellipsize="end"
                 android:gravity="center"
                 android:maxLines="1"
                 android:text="@string/text_no_result_text"
                 android:textColor="@color/colorSecondaryText"
                 android:textSize="16sp"
-                android:visibility="gone"
+                app:visibleGone="@{radios.size() == 0}"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
@@ -121,15 +137,16 @@
                 android:layout_width="48dp"
                 android:layout_height="48dp"
                 android:layout_gravity="center"
-                android:layout_marginBottom="8dp"
-                android:layout_marginEnd="8dp"
                 android:layout_marginStart="8dp"
                 android:layout_marginTop="8dp"
+                android:layout_marginEnd="8dp"
+                android:layout_marginBottom="8dp"
                 android:indeterminate="true"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@+id/partial_toolbar" />
+                app:layout_constraintTop_toBottomOf="@+id/partial_toolbar"
+                app:visibleGone="@{status == Status.LOADING}" />
 
 
         </androidx.constraintlayout.widget.ConstraintLayout>

@@ -7,7 +7,6 @@ import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import com.simonlebras.radiofrance.data.models.Radio
-import com.simonlebras.radiofrance.data.models.Resource
 import com.simonlebras.radiofrance.playback.RadioPlaybackService
 import com.simonlebras.radiofrance.utils.AppContexts
 import kotlinx.coroutines.experimental.Deferred
@@ -79,9 +78,9 @@ class RadioManagerImpl @Inject constructor(
 
     override fun metadataUpdates() = metadataChannel
 
-    override fun loadRadios(): Deferred<Resource<List<Radio>>> {
+    override fun loadRadios(): Deferred<List<Radio>> {
         return async {
-            suspendCancellableCoroutine<Resource<List<Radio>>> {
+            suspendCancellableCoroutine<List<Radio>> {
                 val root = mediaBrowser.root
 
                 mediaBrowser.unsubscribe(root)
@@ -108,7 +107,7 @@ class RadioManagerImpl @Inject constructor(
                                     }
                                 }
 
-                                it.resume(Resource.success(radios))
+                                it.resume(radios)
                             }
                         }
 
