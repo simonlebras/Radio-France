@@ -1,16 +1,19 @@
 package com.simonlebras.radiofrance.playback
 
 import android.app.PendingIntent
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.os.Bundle
 import android.os.SystemClock
 import android.support.v4.media.MediaBrowserCompat
-import android.support.v4.media.MediaDescriptionCompat
 import android.support.v4.media.MediaMetadataCompat
-import androidx.media.session.MediaButtonReceiver
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import android.support.v4.media.session.PlaybackStateCompat.*
+import androidx.core.os.bundleOf
+import androidx.media.session.MediaButtonReceiver
 import androidx.mediarouter.media.MediaRouter
 import com.google.android.gms.cast.framework.CastContext
 import com.google.android.gms.cast.framework.CastSession
@@ -26,19 +29,16 @@ import kotlinx.coroutines.experimental.sync.withLock
 import javax.inject.Inject
 
 class PlaybackManager @Inject constructor(
-    private val service: RadioPlaybackService,
-    private val radioNotificationManager: RadioNotificationManager
+    private val service: RadioPlaybackService
 ) : MediaSessionCompat.Callback(),
     SessionManagerListener<CastSession>,
     Playback.Callback,
     QueueManager.Callback {
     @Volatile
     var isInitialized = false
-
     private val mutex = Mutex()
 
-    private lateinit var queueManager: QueueManager
-
+    private var queueManager = QueueManager(emptyList(), this)
     private var castSessionManager: SessionManager? = null
 
     val mediaSession = MediaSessionCompat(service, service.getString(R.string.app_name)).apply {
@@ -53,19 +53,35 @@ class PlaybackManager @Inject constructor(
         setMediaButtonReceiver(pendingIntent)
 
         setSessionActivity(MainActivity.createSessionIntent(service))
+
+        isActive = true
     }
 
     private var playback: Playback = LocalPlayback(service, this)
 
-    init {
-        radioNotificationManager.updateSessionToken(mediaSession.sessionToken)
+    private val radioNotificationManager = RadioNotificationManager(service, mediaSession)
 
-        updatePlaybackState(null)
+    private val stopCastingReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            val stopIntent = Intent(context, RadioPlaybackService::class.java).apply {
+                action = PlaybackManager.ACTION_STOP_CASTING
+            }
+
+            service.startService(stopIntent)
+        }
+    }
+
+    private val mediaRouter = MediaRouter.getInstance(service)
+
+    init {
+        updatePlaybackState(STATE_NONE, null)
 
         if (GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(service) == ConnectionResult.SUCCESS) {
-            castSessionManager = CastContext.getSharedInstance(service).sessionManager.apply {
-                addSessionManagerListener(this@PlaybackManager, CastSession::class.java)
-            }
+            castSessionManager = CastContext.getSharedInstance(service)
+                .sessionManager
+                .apply {
+                    addSessionManagerListener(this@PlaybackManager, CastSession::class.java)
+                }
         }
     }
 
@@ -76,20 +92,10 @@ class PlaybackManager @Inject constructor(
             }
 
             val queue = mediaItems.mapIndexed { index, mediaItem ->
-                with(mediaItem.description) {
-                    val description = MediaDescriptionCompat.Builder()
-                        .setMediaId(mediaId)
-                        .setTitle(title)
-                        .setDescription(description)
-                        .setMediaUri(mediaUri)
-                        .setIconUri(iconUri)
-                        .build()
-
-                    MediaSessionCompat.QueueItem(description, index.toLong())
-                }
+                MediaSessionCompat.QueueItem(mediaItem.description, index.toLong())
             }
 
-            queueManager = QueueManager(queue, this)
+            queueManager.queue = queue
 
             mediaSession.setQueueTitle(service.getString(R.string.app_name))
             mediaSession.setQueue(queue)
@@ -98,15 +104,10 @@ class PlaybackManager @Inject constructor(
         }
     }
 
-    private val sessionExtras = Bundle()
-
-    private val mediaRouter by lazy(LazyThreadSafetyMode.NONE) {
-        MediaRouter.getInstance(service)
-    }
-
     override fun onSessionEnded(session: CastSession, error: Int) {
-        sessionExtras.remove(EXTRA_CONNECTED_CAST)
-        mediaSession.setExtras(sessionExtras)
+        service.unregisterReceiver(stopCastingReceiver)
+
+        mediaSession.setExtras(null)
 
         mediaRouter.setMediaSessionCompat(null)
 
@@ -116,7 +117,12 @@ class PlaybackManager @Inject constructor(
     override fun onSessionResumed(session: CastSession, wasSuspended: Boolean) {}
 
     override fun onSessionStarted(session: CastSession, sessionId: String) {
-        sessionExtras.putString(EXTRA_CONNECTED_CAST, session.castDevice.friendlyName)
+        service.registerReceiver(
+            stopCastingReceiver,
+            IntentFilter(PlaybackManager.ACTION_STOP_CASTING)
+        )
+
+        val sessionExtras = bundleOf(EXTRA_CONNECTED_CAST to session.castDevice.friendlyName)
         mediaSession.setExtras(sessionExtras)
 
         mediaRouter.setMediaSessionCompat(mediaSession)
@@ -163,20 +169,14 @@ class PlaybackManager @Inject constructor(
         }
 
         playback.pause()
-
-        service.stopForeground(true)
     }
 
     override fun onStop() {
-        if (!isInitialized) {
+        if (!isInitialized || !playback.isPlaying) {
             return
         }
 
         playback.stop()
-
-        service.stopForeground(true)
-
-        updatePlaybackState(null)
     }
 
     override fun onSkipToQueueItem(id: Long) {
@@ -204,11 +204,11 @@ class PlaybackManager @Inject constructor(
     }
 
     override fun onPlaybackStateChanged(state: Int) {
-        updatePlaybackState(null)
+        updatePlaybackState(state, null)
     }
 
     override fun onError(error: String) {
-        updatePlaybackState(error)
+        updatePlaybackState(STATE_ERROR, error)
     }
 
     override fun onQueueItemChanged(item: MediaSessionCompat.QueueItem) {
@@ -231,54 +231,42 @@ class PlaybackManager @Inject constructor(
     }
 
     private fun startPlayback(item: MediaSessionCompat.QueueItem) {
-        if (!mediaSession.isActive) {
-            mediaSession.isActive = true
-        }
-
         playback.play(item)
 
         service.startService(Intent(service, RadioPlaybackService::class.java))
     }
 
-    private fun updatePlaybackState(error: String?) {
-        val builder = PlaybackStateCompat.Builder()
+    private fun updatePlaybackState(state: Int, error: String?) {
+        val playbackState = PlaybackStateCompat.Builder()
             .setActions(getAvailableActions())
+            .setState(
+                state,
+                PLAYBACK_POSITION_UNKNOWN,
+                1.0f,
+                SystemClock.elapsedRealtime()
+            )
+            .apply {
+                error?.let {
+                    setErrorMessage(ERROR_CODE_UNKNOWN_ERROR, it)
+                }
 
-        var playbackState = playback.playbackState
-
-        if (error != null) {
-            builder.setErrorMessage(ERROR_CODE_UNKNOWN_ERROR, error)
-            playbackState = STATE_ERROR
-        }
-
-        builder.setState(
-            playbackState,
-            PLAYBACK_POSITION_UNKNOWN,
-            1.0f,
-            SystemClock.elapsedRealtime()
-        )
-
-        if (isInitialized) {
-            queueManager.currentItem?.let {
-                builder.setActiveQueueItemId(it.queueId)
+                queueManager.currentItem?.let {
+                    setActiveQueueItemId(it.queueId)
+                }
             }
-        }
+            .build()
 
-        mediaSession.setPlaybackState(builder.build())
-
-        if (playbackState == STATE_PLAYING || playbackState == STATE_PAUSED) {
-            radioNotificationManager.startNotification()
-        }
+        mediaSession.setPlaybackState(playbackState)
     }
 
-    private fun switchToPlayback(playback: Playback) {
-        val oldState = this.playback.playbackState
+    private fun switchToPlayback(newPlayback: Playback) {
+        val wasPlaying = playback.isPlaying
 
-        this.playback.release()
+        playback.release()
 
-        this.playback = playback
+        playback = newPlayback
 
-        if (oldState == PlaybackStateCompat.STATE_PLAYING) {
+        if (wasPlaying) {
             playback.play(queueManager.currentItem!!)
         }
     }
@@ -297,23 +285,31 @@ class PlaybackManager @Inject constructor(
         }
     }
 
+    fun stopCasting() {
+        castSessionManager?.endCurrentSession(true)
+    }
+
     fun release() {
-        onStop()
+        mediaSession.release()
 
         playback.release()
 
-        radioNotificationManager.reset()
+        radioNotificationManager.cancel()
 
-        mediaSession.release()
+        try {
+            service.unregisterReceiver(stopCastingReceiver)
+        } catch (e: IllegalArgumentException) {
+        }
 
-        castSessionManager?.removeSessionManagerListener(this, CastSession::class.java)
-    }
-
-    fun stopCasting() {
-        castSessionManager!!.endCurrentSession(true)
+        castSessionManager?.let {
+            it.removeSessionManagerListener(this, CastSession::class.java)
+            it.endCurrentSession(true)
+        }
     }
 
     companion object {
+        const val ACTION_STOP_CASTING = "${BuildConfig.APPLICATION_ID}.ACTION_STOP_CASTING"
+
         const val EXTRA_CONNECTED_CAST = "${BuildConfig.APPLICATION_ID}.EXTRAS_CAST_NAME"
     }
 }

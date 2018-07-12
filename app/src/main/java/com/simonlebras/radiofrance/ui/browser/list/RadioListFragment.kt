@@ -11,6 +11,7 @@ import android.view.View.VISIBLE
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SearchView
 import androidx.core.content.ContextCompat
+import androidx.core.content.getSystemService
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.DiffUtil
@@ -39,10 +40,10 @@ import kotlinx.coroutines.experimental.channels.drop
 import kotlinx.coroutines.experimental.withContext
 import javax.inject.Inject
 
+private const val BUNDLE_QUERY = "BUNDLE_QUERY"
+
 class RadioListFragment : DaggerFragment() {
     companion object {
-        const val BUNDLE_QUERY = "BUNDLE_QUERY"
-
         fun newInstance() = RadioListFragment()
     }
 
@@ -179,7 +180,7 @@ class RadioListFragment : DaggerFragment() {
         miniPlayerFragment =
                 childFragmentManager.findFragmentById(R.id.fragment_mini_player) as MiniPlayerFragment
 
-        viewModel = requireActivity().withViewModel<MainViewModel>(viewModelFactory) {
+        viewModel = requireActivity().withViewModel(viewModelFactory) {
             connect()
 
             connection.observeK(viewLifecycleOwner) {
@@ -226,8 +227,7 @@ class RadioListFragment : DaggerFragment() {
 
         val searchItem = menu.findItem(R.id.action_search)
         searchView = searchItem.actionView as SearchView
-        val searchManager =
-                ContextCompat.getSystemService(requireContext(), SearchManager::class.java)!!
+        val searchManager = requireContext().getSystemService<SearchManager>()!!
         searchView.setSearchableInfo(searchManager.getSearchableInfo(requireActivity().componentName))
 
         if (query != null) {
@@ -264,7 +264,7 @@ class RadioListFragment : DaggerFragment() {
     override fun onSaveInstanceState(outState: Bundle) {
         outState.putString(
                 BUNDLE_QUERY,
-                if (searchView.isIconified) null else searchView.query.toString()
+                if (!menuSet || searchView.isIconified) null else searchView.query.toString()
         )
 
         super.onSaveInstanceState(outState)
@@ -304,12 +304,8 @@ class RadioListFragment : DaggerFragment() {
         }
     }
 
-    private fun shouldShowMiniPlayer(playbackState: PlaybackStateCompat): Boolean {
-        return when (playbackState.state) {
-            STATE_ERROR, PlaybackStateCompat.STATE_NONE, PlaybackStateCompat.STATE_STOPPED -> false
-            else -> true
-        }
-    }
+    private fun shouldShowMiniPlayer(playbackState: PlaybackStateCompat) =
+            playbackState.state != PlaybackStateCompat.STATE_NONE
 
     private fun showMiniPlayer() {
         binding.containerMiniPlayer.visibility = VISIBLE

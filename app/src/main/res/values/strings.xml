@@ -39,6 +39,6 @@
 
     <string name="casting_to_device">Cast sur %1$s</string>
 
-    <string name="notification_channel">Lecture</string>
+    <string name="playback_notification_channel">Lecture</string>
 
 </resources>

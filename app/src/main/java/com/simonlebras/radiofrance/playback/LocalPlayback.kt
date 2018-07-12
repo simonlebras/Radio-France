@@ -12,16 +12,14 @@ import android.media.AudioManager
 import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.PowerManager
-import androidx.core.content.ContextCompat
 import android.support.v4.media.session.MediaSessionCompat
-import android.support.v4.media.session.PlaybackStateCompat
 import android.support.v4.media.session.PlaybackStateCompat.*
+import androidx.core.content.getSystemService
 import com.google.android.exoplayer2.C.CONTENT_TYPE_MUSIC
 import com.google.android.exoplayer2.C.USAGE_MEDIA
 import com.google.android.exoplayer2.ExoPlaybackException
 import com.google.android.exoplayer2.ExoPlayerFactory
 import com.google.android.exoplayer2.Player
-import com.google.android.exoplayer2.SimpleExoPlayer
 import com.google.android.exoplayer2.extractor.mp3.Mp3Extractor
 import com.google.android.exoplayer2.source.ExtractorMediaSource
 import com.google.android.exoplayer2.trackselection.DefaultTrackSelector
@@ -30,6 +28,14 @@ import com.simonlebras.radiofrance.BuildConfig
 import com.simonlebras.radiofrance.R
 import timber.log.Timber
 import com.google.android.exoplayer2.audio.AudioAttributes as ExoPlayerAudioAttributes
+
+private const val TIMEOUT = 5000 // in milliseconds
+
+private const val VOLUME_DUCK = .2f
+private const val VOLUME_NORMAL = 1f
+
+private const val WIFI_LOCK_NAME = "radiofrance:playback-wifi-lock"
+private const val WAKE_LOCK_NAME = "radiofrance:playback-wake-lock"
 
 @TargetApi(Build.VERSION_CODES.O)
 class LocalPlayback(
@@ -40,15 +46,30 @@ class LocalPlayback(
     AudioManager.OnAudioFocusChangeListener {
     private var currentItem: MediaSessionCompat.QueueItem? = null
 
-    override var playbackState = STATE_NONE
+    override val isPlaying: Boolean get() = playOnFocusGain || exoPlayer.playWhenReady
 
-    override val isPlaying: Boolean get() = playOnFocusGain || (this::exoPlayer.isInitialized && exoPlayer.playWhenReady)
+    private var exoPlayer = ExoPlayerFactory.newSimpleInstance(context, DefaultTrackSelector())
+        .apply {
+            audioAttributes = ExoPlayerAudioAttributes.Builder()
+                .setContentType(CONTENT_TYPE_MUSIC)
+                .setUsage(USAGE_MEDIA)
+                .build()
 
-    private lateinit var exoPlayer: SimpleExoPlayer
+            addListener(this@LocalPlayback)
+        }
     private val userAgent = context.getString(R.string.app_name)
 
+    private val mediaSource by lazy(LazyThreadSafetyMode.NONE) {
+        val dataSourceFactory =
+            DefaultHttpDataSourceFactory(userAgent, null, TIMEOUT, TIMEOUT, true)
+
+        ExtractorMediaSource.Factory(dataSourceFactory)
+            .setExtractorsFactory {
+                arrayOf(Mp3Extractor())
+            }
+    }
+
     private var playOnFocusGain = false
-    private var audioFocus = AUDIO_NO_FOCUS_NO_DUCK
     private val audioFocusRequest by lazy(LazyThreadSafetyMode.NONE) {
         val audioAttributes = AudioAttributes.Builder()
             .setUsage(AudioAttributes.USAGE_MEDIA)
@@ -76,84 +97,57 @@ class LocalPlayback(
         }
     }
 
-    private val audioManager = ContextCompat.getSystemService(context, AudioManager::class.java)!!
+    private val audioManager = context.getSystemService<AudioManager>()!!
 
-    private val wifiLock = ContextCompat
-        .getSystemService(context.applicationContext, WifiManager::class.java)!!
-        .createWifiLock(WIFI_LOCK_NAME)
-
-    private val wakeLock = ContextCompat
-        .getSystemService(context, PowerManager::class.java)!!
-        .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, WAKE_LOCK_NAME)
+    private val wifiLock = context.getSystemService<WifiManager>()!!.createWifiLock(WIFI_LOCK_NAME)
+    private val wakeLock = context.getSystemService<PowerManager>()!!.newWakeLock(
+        PowerManager.PARTIAL_WAKE_LOCK,
+        WAKE_LOCK_NAME
+    )
 
     override fun play(item: MediaSessionCompat.QueueItem) {
         currentItem = item
 
         playOnFocusGain = true
 
-        requestAudioFocus()
+        if (!requestAudioFocus()) {
+            return
+        }
+
         registerAudioNoisyReceiver()
         acquireWakeAndWifiLocks()
 
-        prepareExoPlayer()
-
-        playbackState = PlaybackStateCompat.STATE_BUFFERING
-
-        configureExoPlayerState()
+        exoPlayer.apply {
+            stop(true)
+            prepare(mediaSource.createMediaSource(currentItem!!.description.mediaUri))
+            playWhenReady = true
+        }
     }
 
     override fun pause() {
-        if (this::exoPlayer.isInitialized) {
-            exoPlayer.playWhenReady = false
-        }
-
-        releaseWakeAndWifiLocks()
-        unregisterAudioNoisyReceiver()
-
-        playbackState = STATE_PAUSED
-
-        callback.onPlaybackStateChanged(playbackState)
+        stopPlayback(false)
     }
 
     override fun stop() {
-        abandonAudioFocus()
-        unregisterAudioNoisyReceiver()
-        releaseWakeAndWifiLocks()
-
-        if (this::exoPlayer.isInitialized) {
-            exoPlayer.stop(true)
-        }
-
-        playOnFocusGain = false
+        stopPlayback(true)
     }
 
     override fun release() {
         stop()
 
-        releaseExoPlayer()
-    }
+        exoPlayer.removeListener(this)
 
-    override fun onAudioFocusChange(focusChange: Int) {
-        when (focusChange) {
-            AudioManager.AUDIOFOCUS_GAIN -> audioFocus = AUDIO_FOCUSED
-            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> audioFocus = AUDIO_NO_FOCUS_CAN_DUCK
-            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> {
-                audioFocus = AUDIO_NO_FOCUS_NO_DUCK
-                playOnFocusGain = exoPlayer.playWhenReady
-            }
-            AudioManager.AUDIOFOCUS_LOSS -> audioFocus = AUDIO_NO_FOCUS_NO_DUCK
-        }
-
-        configureExoPlayerState()
+        exoPlayer.release()
     }
 
     override fun onPlayerStateChanged(playWhenReady: Boolean, playbackState: Int) {
-        if (playWhenReady && playbackState == Player.STATE_READY &&
-            (this.playbackState == STATE_BUFFERING || this.playbackState == STATE_PAUSED)
-        ) {
-            this.playbackState = STATE_PLAYING
-
-            configureExoPlayerState()
+        when (playbackState) {
+            Player.STATE_BUFFERING -> callback.onPlaybackStateChanged(STATE_BUFFERING)
+            Player.STATE_READY -> {
+                val state = if (playWhenReady) STATE_PLAYING else STATE_PAUSED
+                callback.onPlaybackStateChanged(state)
+            }
+            Player.STATE_IDLE -> callback.onPlaybackStateChanged(STATE_STOPPED)
         }
     }
 
@@ -164,92 +158,67 @@ class LocalPlayback(
 
         stop()
 
-        playbackState = STATE_ERROR
-
         callback.onError(context.getString(R.string.error_occurred))
     }
 
-    private fun prepareExoPlayer() {
-        initializeExoPlayer()
+    override fun onAudioFocusChange(focusChange: Int) {
+        when (focusChange) {
+            AudioManager.AUDIOFOCUS_GAIN -> {
+                exoPlayer.volume = VOLUME_NORMAL
 
-        val dataSourceFactory =
-            DefaultHttpDataSourceFactory(userAgent, null, TIMEOUT, TIMEOUT, true)
-        val source = ExtractorMediaSource.Factory(dataSourceFactory)
-            .setExtractorsFactory { arrayOf(Mp3Extractor()) }
-            .createMediaSource(currentItem!!.description.mediaUri)
-
-        exoPlayer.prepare(source)
-    }
-
-    private fun initializeExoPlayer() {
-        if (!this::exoPlayer.isInitialized) {
-            exoPlayer = ExoPlayerFactory.newSimpleInstance(context, DefaultTrackSelector()).apply {
-                audioAttributes = ExoPlayerAudioAttributes.Builder()
-                    .setContentType(CONTENT_TYPE_MUSIC)
-                    .setUsage(USAGE_MEDIA)
-                    .build()
-
-                addListener(this@LocalPlayback)
+                if (!exoPlayer.playWhenReady && playOnFocusGain) {
+                    play(currentItem!!)
+                }
             }
+            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> {
+                if (exoPlayer.playWhenReady) {
+                    exoPlayer.volume = VOLUME_DUCK
+                }
+            }
+            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> {
+                val wasPlaying = exoPlayer.playWhenReady
+
+                pause()
+
+                playOnFocusGain = wasPlaying
+            }
+            AudioManager.AUDIOFOCUS_LOSS -> stop()
         }
     }
 
-    private fun releaseExoPlayer() {
-        if (this::exoPlayer.isInitialized) {
-            exoPlayer.release()
-
-            exoPlayer.removeListener(this)
+    private fun stopPlayback(abandonAudioFocus: Boolean) {
+        if (abandonAudioFocus) {
+            abandonAudioFocus()
         }
+
+        unregisterAudioNoisyReceiver()
+        releaseWakeAndWifiLocks()
+
+        exoPlayer.stop(true)
+        exoPlayer.playWhenReady = false
+
+        playOnFocusGain = false
     }
 
-    private fun configureExoPlayerState() {
-        if (audioFocus == AUDIO_NO_FOCUS_NO_DUCK) {
-            pause()
+    private fun requestAudioFocus(): Boolean {
+        val result = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            audioManager.requestAudioFocus(audioFocusRequest)
         } else {
-            registerAudioNoisyReceiver()
-
-            exoPlayer.volume =
-                    if (audioFocus == AUDIO_NO_FOCUS_CAN_DUCK) VOLUME_DUCK else VOLUME_NORMAL
-
-            if (playOnFocusGain) {
-                playOnFocusGain = false
-
-                exoPlayer.playWhenReady = true
-            }
+            audioManager.requestAudioFocus(
+                this,
+                AudioManager.STREAM_MUSIC,
+                AudioManager.AUDIOFOCUS_GAIN
+            )
         }
 
-        callback.onPlaybackStateChanged(playbackState)
-    }
-
-    private fun requestAudioFocus() {
-        if (audioFocus != AUDIO_FOCUSED) {
-            val result = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                audioManager.requestAudioFocus(audioFocusRequest)
-            } else {
-                audioManager.requestAudioFocus(
-                    this,
-                    AudioManager.STREAM_MUSIC,
-                    AudioManager.AUDIOFOCUS_GAIN
-                )
-            }
-
-            if (result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
-                audioFocus = AUDIO_FOCUSED
-            }
-        }
+        return result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
     }
 
     private fun abandonAudioFocus() {
-        if (audioFocus == AUDIO_FOCUSED) {
-            val result = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                audioManager.abandonAudioFocusRequest(audioFocusRequest)
-            } else {
-                audioManager.abandonAudioFocus(this)
-            }
-
-            if (result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
-                audioFocus = AUDIO_NO_FOCUS_NO_DUCK
-            }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            audioManager.abandonAudioFocusRequest(audioFocusRequest)
+        } else {
+            audioManager.abandonAudioFocus(this)
         }
     }
 
@@ -289,18 +258,6 @@ class LocalPlayback(
     }
 
     companion object {
-        private const val TIMEOUT = 5000 // in milliseconds
-
-        private const val AUDIO_NO_FOCUS_NO_DUCK = 0
-        private const val AUDIO_NO_FOCUS_CAN_DUCK = 1
-        private const val AUDIO_FOCUSED = 2
-
-        private const val VOLUME_DUCK = .2f
-        private const val VOLUME_NORMAL = 1f
-
-        private const val WIFI_LOCK_NAME = "radiofrance:playback-wifi-lock"
-        private const val WAKE_LOCK_NAME = "radiofrance:playback-wake-lock"
-
         const val ACTION_PAUSE = "${BuildConfig.APPLICATION_ID}.ACTION_PAUSE"
     }
 }

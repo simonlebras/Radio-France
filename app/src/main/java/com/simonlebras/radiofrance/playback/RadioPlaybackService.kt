@@ -49,7 +49,7 @@ class RadioPlaybackService : MediaBrowserServiceCompat() {
         if (intent != null) {
             when (intent.action) {
                 LocalPlayback.ACTION_PAUSE -> playbackManager.onPause()
-                RadioNotificationManager.ACTION_STOP_CASTING -> playbackManager.stopCasting()
+                PlaybackManager.ACTION_STOP_CASTING -> playbackManager.stopCasting()
                 else -> MediaButtonReceiver.handleIntent(playbackManager.mediaSession, intent)
             }
         }

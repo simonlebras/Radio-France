@@ -11,9 +11,9 @@ import com.google.android.gms.cast.MediaStatus
 import com.google.android.gms.cast.framework.SessionManager
 import com.google.android.gms.cast.framework.media.RemoteMediaClient
 import com.google.android.gms.common.images.WebImage
-import com.simonlebras.radiofrance.BuildConfig
 import com.simonlebras.radiofrance.R
-import timber.log.Timber
+
+private const val MIME_TYPE_AUDIO_MPEG = "audio/mpeg"
 
 class CastPlayback(
     private val context: Context,
@@ -26,8 +26,6 @@ class CastPlayback(
     }
 
     private var currentItem: MediaSessionCompat.QueueItem? = null
-
-    override var playbackState = STATE_NONE
 
     override val isPlaying get() = sessionManager.currentCastSession?.isConnected == true && remoteMediaClient.isPlaying
 
@@ -42,8 +40,7 @@ class CastPlayback(
                     putString(MediaMetadata.KEY_TITLE, title.toString())
                     putString(MediaMetadata.KEY_SUBTITLE, description.toString())
 
-                    val image =
-                        WebImage(Uri.Builder().encodedPath(iconUri.toString()).build())
+                    val image = WebImage(Uri.Builder().encodedPath(iconUri.toString()).build())
                     addImage(image)
                 }
 
@@ -77,47 +74,20 @@ class CastPlayback(
     }
 
     override fun onStatusUpdated() {
-        val status = remoteMediaClient.playerState
-
-        when (status) {
-            MediaStatus.PLAYER_STATE_BUFFERING -> {
-                playbackState = STATE_BUFFERING
-
-                callback.onPlaybackStateChanged(playbackState)
-            }
-            MediaStatus.PLAYER_STATE_PLAYING -> {
-                playbackState = STATE_PLAYING
-
-                callback.onPlaybackStateChanged(playbackState)
-            }
-            MediaStatus.PLAYER_STATE_PAUSED -> {
-                playbackState = STATE_PAUSED
-
-                callback.onPlaybackStateChanged(playbackState)
-            }
+        when (remoteMediaClient.playerState) {
+            MediaStatus.PLAYER_STATE_BUFFERING -> callback.onPlaybackStateChanged(STATE_BUFFERING)
+            MediaStatus.PLAYER_STATE_PLAYING -> callback.onPlaybackStateChanged(STATE_PLAYING)
+            MediaStatus.PLAYER_STATE_PAUSED -> callback.onPlaybackStateChanged(STATE_PAUSED)
             MediaStatus.PLAYER_STATE_IDLE -> {
                 when (remoteMediaClient.idleReason) {
                     MediaStatus.IDLE_REASON_CANCELED, MediaStatus.IDLE_REASON_INTERRUPTED -> {
-                        playbackState = STATE_STOPPED
-
-                        callback.onPlaybackStateChanged(playbackState)
+                        callback.onPlaybackStateChanged(STATE_STOPPED)
                     }
                     MediaStatus.IDLE_REASON_ERROR -> {
-                        playbackState = STATE_ERROR
-
                         callback.onError(context.getString(R.string.error_occurred))
                     }
                 }
             }
-            else -> {
-                if (BuildConfig.DEBUG) {
-                    Timber.d("State default: %d", status)
-                }
-            }
         }
-    }
-
-    private companion object {
-        const val MIME_TYPE_AUDIO_MPEG = "audio/mpeg"
     }
 }

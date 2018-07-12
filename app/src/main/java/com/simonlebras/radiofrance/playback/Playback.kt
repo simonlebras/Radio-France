@@ -3,8 +3,6 @@ package com.simonlebras.radiofrance.playback
 import android.support.v4.media.session.MediaSessionCompat
 
 interface Playback {
-    var playbackState: Int
-
     val isPlaying: Boolean
 
     fun play(item: MediaSessionCompat.QueueItem)

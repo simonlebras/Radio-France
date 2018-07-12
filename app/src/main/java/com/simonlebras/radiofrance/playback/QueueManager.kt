@@ -3,15 +3,21 @@ package com.simonlebras.radiofrance.playback
 import android.support.v4.media.session.MediaSessionCompat
 import kotlin.properties.Delegates
 
+private const val INVALID_INDEX = -1
+
 class QueueManager(
-    private val queue: List<MediaSessionCompat.QueueItem>,
-    private val callback: Callback
+        var queue: List<MediaSessionCompat.QueueItem>,
+        private val callback: Callback
 ) {
     var currentItem by Delegates.observable<MediaSessionCompat.QueueItem?>(null) { _, _, item ->
         callback.onQueueItemChanged(item!!)
     }
 
     private var currentIndex by Delegates.observable(INVALID_INDEX) { _, _, index ->
+        if (queue.isEmpty() || index < 0 || index > queue.size) {
+            return@observable
+        }
+
         currentItem = queue[index]
     }
 
@@ -46,9 +52,5 @@ class QueueManager(
 
     interface Callback {
         fun onQueueItemChanged(item: MediaSessionCompat.QueueItem)
-    }
-
-    private companion object {
-        const val INVALID_INDEX = -1
     }
 }
